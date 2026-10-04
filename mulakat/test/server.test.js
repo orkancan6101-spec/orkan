@@ -9,7 +9,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { createApp, loadConfig } = require('../server');
+const { createApp, loadConfig, keepAwake } = require('../server');
 const { createStore } = require('../store');
 
 async function startServer(envOverrides) {
@@ -205,4 +205,26 @@ test('sayfalar ve güvenlik başlıkları sunulur', async () => {
   } finally {
     await srv.close();
   }
+});
+
+describe('7/24 açık tutma', () => {
+  test('Render adresi varsa uyanık tutma otomatik açılır, KEEP_ALIVE=off ile kapanır', () => {
+    assert.equal(loadConfig({ RENDER_EXTERNAL_URL: 'https://site.onrender.com' }).keepAliveUrl, 'https://site.onrender.com');
+    assert.equal(loadConfig({ RENDER_EXTERNAL_URL: 'https://site.onrender.com', KEEP_ALIVE: 'off' }).keepAliveUrl, '');
+    assert.equal(loadConfig({}).keepAliveUrl, '');
+  });
+
+  test('sitenin kendi /health adresine düzenli istek atar', async () => {
+    let hits = 0;
+    const server = http.createServer((req, res) => {
+      if (req.url === '/health') hits += 1;
+      res.end('ok');
+    });
+    await new Promise((r) => server.listen(0, '127.0.0.1', r));
+    const timer = keepAwake(`http://127.0.0.1:${server.address().port}`, 40);
+    await new Promise((r) => setTimeout(r, 200));
+    clearInterval(timer);
+    await new Promise((r) => server.close(r));
+    assert.ok(hits >= 2, `en az 2 istek beklendi, ${hits} geldi`);
+  });
 });

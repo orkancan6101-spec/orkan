@@ -30,13 +30,25 @@ Site ve veritabanı [Render](https://render.com) üzerinde çalışır. Kredi ka
 7. `otomotiv-mulakat` servisine tıklayın; üstte `https://otomotiv-mulakat.onrender.com` benzeri bir adres görürsünüz.
    **Bu linki adaylarla paylaşın.** Yönetim paneli: aynı adresin sonuna `/admin` ekleyin.
 
+### 7/24 açık kalma
+
+Site kurulduğu andan itibaren gece gündüz açıktır; link her an çalışır ve adaylar istedikleri saatte girip seçim yapabilir.
+Siz de yönetim panelini (`/admin`) telefondan ya da bilgisayardan istediğiniz zaman açabilirsiniz.
+
+- Render'ın ücretsiz sunucusu normalde 15 dakika kimse girmezse uykuya geçer ve sonraki ilk açılış 30–60 saniye sürer.
+  Bunu önlemek için site **kendi adresine 10 dakikada bir istek atar** ve uykuya geçmez. Bu özellik Render'da
+  otomatik açılır, ayrıca bir şey yapmanız gerekmez (kapatmak için `KEEP_ALIVE=off`).
+- Render sunucuyu bakım için nadiren yeniden başlatabilir; bu durumda site bir dakika içinde kendiliğinden geri gelir.
+  **Randevular kaybolmaz**, hepsi veritabanında saklanır.
+- Ek güvence isterseniz ücretsiz [UptimeRobot](https://uptimerobot.com) hesabı açıp
+  `https://SİTE-ADRESİNİZ/health` adresi için 5 dakikalık bir "HTTP monitor" ekleyin. Hem siteyi uyanık tutar
+  hem de site erişilemez olursa size e-posta gönderir.
+- Ücretsiz plan ayda 750 saat çalışma hakkı verir; tek site için 7/24 çalışmaya (ayda en fazla 744 saat) yeter.
+  Kesin garanti isterseniz `otomotiv-mulakat` → **Settings → Instance Type** bölümünden ücretli **Starter**
+  planına geçebilirsiniz (aylık birkaç dolar); bu planda sunucu hiç uyumaz.
+
 ### Bilmeniz gerekenler (ücretsiz plan)
 
-- **Uyku modu:** Ücretsiz sunucu 15 dakika kimse girmezse uyur; ilk giren kişi için sayfanın açılması
-  30–60 saniye sürebilir, sonrası hızlıdır. **Randevular kaybolmaz** (veritabanında saklanır).
-  Linki paylaşmadan birkaç dakika önce siteyi bir kez kendiniz açın.
-  Sürekli uyanık kalmasını isterseniz ücretsiz [UptimeRobot](https://uptimerobot.com) ile
-  `https://SİTE-ADRESİNİZ/health` adresine 5 dakikada bir istek gönderecek bir "monitor" kurun.
 - **Veritabanı süresi:** Render'ın ücretsiz veritabanı oluşturulduktan **30 gün sonra** sona erer.
   Mülakat süreci bu süre içinde biteceği için sorun olmaz; bittiğinde yönetim panelinden CSV'yi indirmeyi unutmayın.
   Daha uzun süre lazımsa veritabanını Render'da ücretli plana geçirebilir ya da
@@ -59,6 +71,7 @@ Render'da `otomotiv-mulakat` → **Environment** sekmesinden değiştirilebilir.
 | `SUBTITLE` | Başlığın altındaki soru | `Sizinle ne zaman görüşmemizi istersiniz?` |
 | `START_TIME` / `END_TIME` | Görüşme saat aralığı | `17:00` / `20:00` |
 | `SLOT_MINUTES` | Bir görüşmenin süresi (dakika) | `10` |
+| `KEEP_ALIVE` | `off` yazılırsa sitenin kendini uyanık tutması kapanır | açık |
 
 > Saat aralığını veya süreyi, randevular alınmaya başladıktan **sonra** değiştirmeyin; mevcut randevular eski saatlere göre kayıtlıdır.
 

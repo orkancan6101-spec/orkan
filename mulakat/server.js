@@ -27,6 +27,9 @@ function loadConfig(env = process.env) {
     adminPassword: env.ADMIN_PASSWORD || '',
     databaseUrl: env.DATABASE_URL || '',
     dataFile: get('DATA_FILE', path.join(__dirname, 'data', 'bookings.json')),
+    // Render kendi adresini RENDER_EXTERNAL_URL olarak verir; site bu adrese düzenli
+    // istek atarak ücretsiz planda uykuya geçmez. Kapatmak için KEEP_ALIVE=off.
+    keepAliveUrl: get('KEEP_ALIVE', '') === 'off' ? '' : get('KEEP_ALIVE_URL', get('RENDER_EXTERNAL_URL', '')),
   };
 
   const time = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -426,6 +429,19 @@ function createApp({ config, store }) {
   return { handle, slots };
 }
 
+// Ücretsiz Render sunucusu 15 dakika istek almazsa uyur. Kendi genel adresine
+// 10 dakikada bir istek atarak sitenin 7/24 anında açılmasını sağlar.
+function keepAwake(baseUrl, intervalMs = 10 * 60 * 1000) {
+  const url = new URL('/health', baseUrl).toString();
+  const timer = setInterval(() => {
+    fetch(url, { signal: AbortSignal.timeout(30000) }).catch((err) => {
+      console.warn(`Uyanık tutma isteği başarısız: ${err.message}`);
+    });
+  }, intervalMs);
+  timer.unref();
+  return timer;
+}
+
 async function start() {
   const config = loadConfig();
   const store = createStore(config);
@@ -436,6 +452,10 @@ async function start() {
     console.log(`Mülakat randevu sistemi çalışıyor: http://localhost:${config.port}`);
     console.log(`Depolama: ${store.kind === 'postgres' ? 'PostgreSQL' : config.dataFile}`);
     if (!config.adminPassword) console.log('Uyarı: ADMIN_PASSWORD ayarlanmadığı için /admin paneli kapalı.');
+    if (config.keepAliveUrl) {
+      keepAwake(config.keepAliveUrl);
+      console.log(`Uyanık tutma açık: ${config.keepAliveUrl} adresine 10 dakikada bir istek gönderiliyor.`);
+    }
   });
   const shutdown = () => server.close(() => store.close().finally(() => process.exit(0)));
   process.on('SIGTERM', shutdown);
@@ -449,4 +469,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { createApp, loadConfig, buildSlots, normalizePhone };
+module.exports = { createApp, loadConfig, buildSlots, normalizePhone, keepAwake };
