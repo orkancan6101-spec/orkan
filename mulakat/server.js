@@ -17,7 +17,7 @@ function loadConfig(env = process.env) {
     clubName: get('CLUB_NAME', 'Otomotiv Kulübü'),
     title: get('PAGE_TITLE', 'Otomotiv Kulübü Üye Mülakatı'),
     subtitle: get('SUBTITLE', 'Sizinle ne zaman görüşmemizi istersiniz?'),
-    interviewDate: get('INTERVIEW_DATE', ''), // YYYY-AA-GG, örn. 2026-10-15
+    interviewDate: get('INTERVIEW_DATE', '2026-10-06'), // YYYY-AA-GG; mülakat günü: 6 Ekim 2026 Salı
     location: get('LOCATION', ''),
     contact: get('CONTACT', ''),
     startTime: get('START_TIME', '17:00'),

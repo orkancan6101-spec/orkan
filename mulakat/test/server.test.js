@@ -13,7 +13,8 @@ const { createApp, loadConfig } = require('../server');
 const { createStore } = require('../store');
 
 async function startServer(envOverrides) {
-  const config = loadConfig({ ADMIN_PASSWORD: 'gizli-sifre', ...envOverrides });
+  // Testler gerçek mülakat gününden bağımsız olsun diye ileri bir tarih kullanılır.
+  const config = loadConfig({ ADMIN_PASSWORD: 'gizli-sifre', INTERVIEW_DATE: '2099-10-15', ...envOverrides });
   const store = createStore(config);
   await store.init();
   const app = createApp({ config, store });

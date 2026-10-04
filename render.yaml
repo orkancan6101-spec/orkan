@@ -19,8 +19,8 @@ services:
           property: connectionString
       - key: ADMIN_PASSWORD # yönetim paneli (/admin) şifresi
         sync: false
-      - key: INTERVIEW_DATE # mülakat günü, YYYY-AA-GG (örn. 2026-10-15)
-        sync: false
+      - key: INTERVIEW_DATE # mülakat günü (YYYY-AA-GG): 6 Ekim 2026 Salı
+        value: "2026-10-06"
 
 databases:
   - name: otomotiv-mulakat-db

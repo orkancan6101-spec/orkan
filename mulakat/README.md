@@ -24,9 +24,8 @@ Site ve veritabanı [Render](https://render.com) üzerinde çalışır. Kredi ka
 4. Render, depodaki `render.yaml` dosyasını okuyup iki şey kuracağını gösterir:
    - `otomotiv-mulakat` (web sitesi)
    - `otomotiv-mulakat-db` (PostgreSQL veritabanı)
-5. Sizden iki değer istenir:
-   - **ADMIN_PASSWORD** → yönetim paneli şifresi (güçlü bir şifre seçin, kimseyle paylaşmayın)
-   - **INTERVIEW_DATE** → mülakat günü, `YYYY-AA-GG` biçiminde (örn. `2026-10-15`)
+5. Sizden **ADMIN_PASSWORD** istenir → yönetim paneli şifresi (güçlü bir şifre seçin, kimseyle paylaşmayın).
+   Mülakat günü (**6 Ekim 2026 Salı**) hazır olarak ayarlıdır.
 6. **Apply** (Deploy) düğmesine basın. 2–3 dakika içinde site yayına girer.
 7. `otomotiv-mulakat` servisine tıklayın; üstte `https://otomotiv-mulakat.onrender.com` benzeri bir adres görürsünüz.
    **Bu linki adaylarla paylaşın.** Yönetim paneli: aynı adresin sonuna `/admin` ekleyin.
@@ -52,7 +51,7 @@ Render'da `otomotiv-mulakat` → **Environment** sekmesinden değiştirilebilir.
 | Değişken | Açıklama | Varsayılan |
 |---|---|---|
 | `ADMIN_PASSWORD` | `/admin` paneli şifresi (boşsa panel kapalıdır) | – |
-| `INTERVIEW_DATE` | Mülakat günü (`2026-10-15`). Girilirse sayfada tarih görünür, takvime ekleme açılır ve saati geçen dilimler otomatik kapanır | – |
+| `INTERVIEW_DATE` | Mülakat günü (`YYYY-AA-GG`). Sayfada tarih olarak görünür, takvime eklemede kullanılır; saati geçen dilimler otomatik kapanır | `2026-10-06` (6 Ekim 2026 Salı) |
 | `LOCATION` | Mülakat yeri (örn. `Mühendislik Fakültesi, B Blok 204` veya `Google Meet`) | – |
 | `CONTACT` | Alt bilgide görünen iletişim (e-posta / telefon) | – |
 | `CLUB_NAME` | Kulüp adı | `Otomotiv Kulübü` |
@@ -81,7 +80,7 @@ Node.js 20 veya üstü gerekir.
 ```bash
 cd mulakat
 npm install
-ADMIN_PASSWORD=deneme INTERVIEW_DATE=2026-10-15 npm start
+ADMIN_PASSWORD=deneme npm start
 # http://localhost:3000  ve  http://localhost:3000/admin
 ```
 
