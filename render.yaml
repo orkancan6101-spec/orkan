@@ -1,0 +1,31 @@
+# Render "Blueprint" dosyası: mülakat randevu sitesini ve veritabanını
+# tek seferde bulutta kurar. Kurulum adımları için: mulakat/README.md
+services:
+  - type: web
+    name: otomotiv-mulakat
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: mulakat
+    buildCommand: npm ci --omit=dev
+    startCommand: node server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: otomotiv-mulakat-db
+          property: connectionString
+      - key: ADMIN_PASSWORD # yönetim paneli (/admin) şifresi
+        sync: false
+      - key: INTERVIEW_DATE # mülakat günü, YYYY-AA-GG (örn. 2026-10-15)
+        sync: false
+
+databases:
+  - name: otomotiv-mulakat-db
+    plan: free
+    region: frankfurt
+    databaseName: mulakat
+    user: mulakat
+    ipAllowList: [] # yalnızca Render içinden erişilebilir

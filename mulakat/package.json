@@ -1,0 +1,17 @@
+{
+  "name": "otomotiv-kulubu-mulakat",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Otomotiv Kulübü üye mülakatı için randevu (saat seçme) sistemi",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "pg": "^8.13.0"
+  }
+}
