@@ -65,7 +65,7 @@
     const date = config.interviewDate
       ? new Intl.DateTimeFormat('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(`${config.interviewDate}T12:00:00`))
       : 'Tarih belirtilmedi';
-    $('#dashSub').textContent = `${date} · ${config.startTime} – ${config.endTime} · ${config.slotMinutes} dakikalık görüşmeler · her saatte ${capacity} kişi`;
+    $('#dashSub').textContent = `${date} · ${config.startTime} – ${config.endTime} · ${config.slotMinutes} dakikalık görüşmeler · her görüşmede ${capacity} kişi`;
 
     $('#statTotal').textContent = String(total);
     $('#statBooked').textContent = String(booked);

@@ -21,9 +21,9 @@ function loadConfig(env = process.env) {
     location: get('LOCATION', ''),
     contact: get('CONTACT', ''),
     startTime: get('START_TIME', '17:00'),
-    endTime: get('END_TIME', '20:00'),
+    endTime: get('END_TIME', '19:00'),
     slotMinutes: Number(get('SLOT_MINUTES', '10')),
-    slotCapacity: Number(get('SLOT_CAPACITY', '2')), // aynı saate alınabilecek kişi sayısı
+    slotCapacity: Number(get('SLOT_CAPACITY', '3')), // aynı görüşmeye alınabilecek kişi sayısı
     utcOffset: get('UTC_OFFSET', '+03:00'), // Türkiye saati
     adminPassword: env.ADMIN_PASSWORD || '',
     databaseUrl: env.DATABASE_URL || '',

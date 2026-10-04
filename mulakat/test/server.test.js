@@ -55,20 +55,20 @@ function suite(name, makeEnv, reset) {
     });
     after(() => srv.close());
 
-    test('17:00–20:00 arası 10 dakikalık 18 saat, her saatte 2 kişi: toplam 36 kişi', async () => {
+    test('17:00–19:00 arası 10 dakikalık 12 saat, her görüşmede 3 kişi: toplam 36 kişi', async () => {
       const { status, json } = await srv.call('GET', '/api/slots');
       assert.equal(status, 200);
-      assert.equal(json.slots.length, 18);
-      assert.equal(json.capacity, 2);
+      assert.equal(json.slots.length, 12);
+      assert.equal(json.capacity, 3);
       assert.equal(json.total, 36);
       assert.equal(json.available, 36);
       assert.equal(json.slots[0].id, '17:00');
-      assert.equal(json.slots[17].id, '19:50');
-      assert.equal(json.slots[17].end, '20:00');
-      assert.ok(json.slots.every((s) => s.status === 'available' && s.remaining === 2));
+      assert.equal(json.slots[11].id, '18:50');
+      assert.equal(json.slots[11].end, '19:00');
+      assert.ok(json.slots.every((s) => s.status === 'available' && s.remaining === 3));
     });
 
-    test('randevu alınır, saatte 1 yer kalır ve aday kendi randevusunu görür', async () => {
+    test('randevu alınır, saatte 2 yer kalır ve aday kendi randevusunu görür', async () => {
       const res = await srv.call('POST', '/api/bookings', { slotId: '17:00', ...person(1) });
       assert.equal(res.status, 201);
       assert.ok(res.json.token);
@@ -76,7 +76,7 @@ function suite(name, makeEnv, reset) {
 
       const slots = await srv.call('GET', '/api/slots');
       assert.equal(slots.json.slots[0].status, 'available');
-      assert.equal(slots.json.slots[0].remaining, 1);
+      assert.equal(slots.json.slots[0].remaining, 2);
       assert.equal(slots.json.available, 35);
       assert.ok(!slots.text.includes('aday1@ornek.com'), 'herkese açık listede kişisel bilgi olmamalı');
 
@@ -85,39 +85,39 @@ function suite(name, makeEnv, reset) {
       assert.equal(me.json.booking.slotId, '17:00');
     });
 
-    test('aynı saate ikinci kişi alınır, üçüncü kişi alınmaz', async () => {
-      const second = await srv.call('POST', '/api/bookings', { slotId: '17:00', ...person(2) });
-      assert.equal(second.status, 201);
-      const third = await srv.call('POST', '/api/bookings', { slotId: '17:00', ...person(3) });
-      assert.equal(third.status, 409);
-      assert.equal(third.json.error, 'slot_taken');
+    test('aynı saate ikinci ve üçüncü kişi alınır, dördüncü kişi alınmaz', async () => {
+      assert.equal((await srv.call('POST', '/api/bookings', { slotId: '17:00', ...person(2) })).status, 201);
+      assert.equal((await srv.call('POST', '/api/bookings', { slotId: '17:00', ...person(3) })).status, 201);
+      const fourth = await srv.call('POST', '/api/bookings', { slotId: '17:00', ...person(4) });
+      assert.equal(fourth.status, 409);
+      assert.equal(fourth.json.error, 'slot_taken');
 
       const slots = await srv.call('GET', '/api/slots');
       assert.equal(slots.json.slots[0].status, 'booked');
       assert.equal(slots.json.slots[0].remaining, 0);
-      assert.equal(slots.json.booked, 2);
+      assert.equal(slots.json.booked, 3);
     });
 
     test('aynı e-posta veya telefon ikinci randevu alamaz', async () => {
-      const sameEmail = await srv.call('POST', '/api/bookings', { slotId: '17:10', ...person(3, { email: 'ADAY1@ornek.com ' }) });
+      const sameEmail = await srv.call('POST', '/api/bookings', { slotId: '17:10', ...person(5, { email: 'ADAY1@ornek.com ' }) });
       assert.equal(sameEmail.status, 409);
       assert.equal(sameEmail.json.error, 'already_booked');
 
-      const samePhone = await srv.call('POST', '/api/bookings', { slotId: '17:10', ...person(4, { phone: '+90 532 100 00 01' }) });
+      const samePhone = await srv.call('POST', '/api/bookings', { slotId: '17:10', ...person(6, { phone: '+90 532 100 00 01' }) });
       assert.equal(samePhone.status, 409);
       assert.equal(samePhone.json.error, 'already_booked');
     });
 
-    test('aynı anda 40 kişi aynı saati seçerse yalnızca 2 kişi alır', async () => {
+    test('aynı anda 40 kişi aynı saati seçerse yalnızca 3 kişi alır', async () => {
       const results = await Promise.all(
         Array.from({ length: 40 }, (_, i) => srv.call('POST', '/api/bookings', { slotId: '18:00', ...person(100 + i) })),
       );
-      assert.equal(results.filter((r) => r.status === 201).length, 2);
+      assert.equal(results.filter((r) => r.status === 201).length, 3);
       assert.ok(results.filter((r) => r.status !== 201).every((r) => r.json.error === 'slot_taken'));
     });
 
     test('aynı kişi aynı anda birden çok saat deneyemez', async () => {
-      const ids = ['19:00', '19:10', '19:20', '19:30', '19:40', '19:50'];
+      const ids = ['17:30', '17:40', '17:50', '18:10', '18:20', '18:30'];
       const results = await Promise.all(ids.map((slotId) => srv.call('POST', '/api/bookings', { slotId, ...person(500) })));
       assert.equal(results.filter((r) => r.status === 201).length, 1);
     });
@@ -137,7 +137,7 @@ function suite(name, makeEnv, reset) {
       assert.equal(list.status, 200);
       const first = list.json.slots.find((s) => s.id === '17:00');
       assert.equal(first.status, 'booked');
-      assert.deepEqual(first.bookings.map((b) => b.seat), [1, 2]);
+      assert.deepEqual(first.bookings.map((b) => b.seat), [1, 2, 3]);
       assert.equal(first.bookings[0].email, 'aday1@ornek.com');
       assert.equal(first.bookings[0].phone, '0532 100 00 01');
 
@@ -154,13 +154,13 @@ function suite(name, makeEnv, reset) {
       assert.equal(slots.json.slots[0].status, 'available');
       assert.equal(slots.json.slots[0].remaining, 1);
 
-      // Boşalan yer yeni bir adaya verilir; diğer kişinin randevusu yerinde kalır
+      // Boşalan yer yeni bir adaya verilir; diğer kişilerin randevusu yerinde kalır
       const newcomer = await srv.call('POST', '/api/bookings', { slotId: '17:00', ...person(700) });
       assert.equal(newcomer.status, 201);
       slots = await srv.call('GET', '/api/slots');
       assert.equal(slots.json.slots[0].status, 'booked');
       const after = await srv.call('GET', '/api/admin/bookings', undefined, auth);
-      assert.deepEqual(after.json.slots[0].bookings.map((b) => b.email), ['aday700@ornek.com', 'aday2@ornek.com']);
+      assert.deepEqual(after.json.slots[0].bookings.map((b) => b.email), ['aday700@ornek.com', 'aday2@ornek.com', 'aday3@ornek.com']);
 
       // İptal edilen aday yeniden randevu alabilir
       const again = await srv.call('POST', '/api/bookings', { slotId: '17:20', ...person(1) });
@@ -188,7 +188,7 @@ if (process.env.TEST_DATABASE_URL) {
     },
   );
 
-  test('eski veritabanı (saat başına 1 kişi) kayıtlar korunarak 2 kişiye geçirilir', async () => {
+  test('eski veritabanı (saat başına 1 kişi) kayıtlar korunarak 3 kişiye geçirilir', async () => {
     const { Client } = require('pg');
     const client = new Client({ connectionString: process.env.TEST_DATABASE_URL });
     await client.connect();
@@ -203,11 +203,12 @@ if (process.env.TEST_DATABASE_URL) {
     const srv = await startServer({ DATABASE_URL: process.env.TEST_DATABASE_URL });
     try {
       const slots = await srv.call('GET', '/api/slots');
-      assert.equal(slots.json.slots[0].remaining, 1, 'eski randevu korunmalı');
+      assert.equal(slots.json.slots[0].remaining, 2, 'eski randevu korunmalı');
       const me = await srv.call('GET', '/api/bookings/me', undefined, { 'X-Booking-Token': 'eski-token' });
       assert.equal(me.json.booking.fullName, 'Eski Aday');
       assert.equal((await srv.call('POST', '/api/bookings', { slotId: '17:00', ...person(1) })).status, 201);
-      assert.equal((await srv.call('POST', '/api/bookings', { slotId: '17:00', ...person(2) })).status, 409);
+      assert.equal((await srv.call('POST', '/api/bookings', { slotId: '17:00', ...person(2) })).status, 201);
+      assert.equal((await srv.call('POST', '/api/bookings', { slotId: '17:00', ...person(3) })).status, 409);
     } finally {
       await srv.close();
     }
@@ -221,7 +222,7 @@ describe('kontenjan ayarı', () => {
       assert.equal((await srv.call('POST', '/api/bookings', { slotId: '17:00', ...person(1) })).status, 201);
       const second = await srv.call('POST', '/api/bookings', { slotId: '17:00', ...person(2) });
       assert.equal(second.status, 409);
-      assert.equal((await srv.call('GET', '/api/slots')).json.total, 18);
+      assert.equal((await srv.call('GET', '/api/slots')).json.total, 12);
     } finally {
       await srv.close();
     }

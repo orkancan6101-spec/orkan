@@ -21,8 +21,10 @@ services:
         sync: false
       - key: INTERVIEW_DATE # mülakat günü (YYYY-AA-GG): 6 Ekim 2026 Salı
         value: "2026-10-06"
-      - key: SLOT_CAPACITY # aynı saate alınabilecek kişi sayısı (18 saat × 2 = 36 kişi)
-        value: "2"
+      - key: END_TIME # 17:00–19:00 arası 10 dakikalık 12 görüşme
+        value: "19:00"
+      - key: SLOT_CAPACITY # bir görüşmeye alınabilecek kişi sayısı (12 görüşme × 3 = 36 kişi)
+        value: "3"
 
 databases:
   - name: otomotiv-mulakat-db
