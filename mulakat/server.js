@@ -32,6 +32,11 @@ function loadConfig(env = process.env) {
     keepAliveUrl: get('KEEP_ALIVE', '') === 'off' ? '' : get('KEEP_ALIVE_URL', get('RENDER_EXTERNAL_URL', '')),
   };
 
+  // Render'da dosyaya yazılanlar yeniden başlatmada silinir; veritabanı olmadan çalışmayı reddet.
+  if (env.RENDER && !config.databaseUrl) {
+    throw new Error('DATABASE_URL ayarlanmamış. Render → otomotiv-mulakat → Environment bölümüne Neon bağlantı adresini ekleyin.');
+  }
+
   const time = /^([01]\d|2[0-3]):[0-5]\d$/;
   if (!time.test(config.startTime) || !time.test(config.endTime)) {
     throw new Error('START_TIME ve END_TIME SS:DD biçiminde olmalı (örn. 17:00).');

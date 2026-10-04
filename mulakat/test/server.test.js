@@ -228,3 +228,8 @@ describe('7/24 açık tutma', () => {
     assert.ok(hits >= 2, `en az 2 istek beklendi, ${hits} geldi`);
   });
 });
+
+test("Render'da veritabanı adresi yoksa site başlamaz (randevular kaybolmasın diye)", () => {
+  assert.throws(() => loadConfig({ RENDER: 'true' }), /DATABASE_URL/);
+  assert.doesNotThrow(() => loadConfig({ RENDER: 'true', DATABASE_URL: 'postgresql://u:p@host/db?sslmode=require' }));
+});

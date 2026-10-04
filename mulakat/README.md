@@ -13,22 +13,42 @@ Adayların mülakat saatini kendilerinin seçtiği web sitesi.
 
 ---
 
-## Buluta kurulum (Render, ücretsiz, ~5 dakika)
+## Buluta kurulum (tamamen ücretsiz, süresiz, ~10 dakika)
 
-Site ve veritabanı [Render](https://render.com) üzerinde çalışır. Kredi kartı gerekmez.
+- **Site** [Render](https://render.com) üzerinde çalışır.
+- **Randevular** [Neon](https://neon.tech) üzerindeki PostgreSQL veritabanında saklanır. Neon'un ücretsiz planının süresi dolmaz.
+- İkisi de kredi kartı istemez.
 
-1. **render.com** adresine gidin ve **GitHub hesabınızla giriş yapın**.
-2. Üst menüden **New → Blueprint** seçin.
-3. `orkancan6101-spec/orkan` deposunu seçin (gerekirse "Configure GitHub" ile Render'a bu depoya erişim izni verin).
-   **Branch** olarak `claude/upbeat-newton-syzkmf` seçin (bu değişiklik ana dala birleştirildiyse ana dalı seçebilirsiniz).
-4. Render, depodaki `render.yaml` dosyasını okuyup iki şey kuracağını gösterir:
-   - `otomotiv-mulakat` (web sitesi)
-   - `otomotiv-mulakat-db` (PostgreSQL veritabanı)
-5. Sizden **ADMIN_PASSWORD** istenir → yönetim paneli şifresi (güçlü bir şifre seçin, kimseyle paylaşmayın).
-   Mülakat günü (**6 Ekim 2026 Salı**) hazır olarak ayarlıdır.
-6. **Apply** (Deploy) düğmesine basın. 2–3 dakika içinde site yayına girer.
-7. `otomotiv-mulakat` servisine tıklayın; üstte `https://otomotiv-mulakat.onrender.com` benzeri bir adres görürsünüz.
-   **Bu linki adaylarla paylaşın.** Yönetim paneli: aynı adresin sonuna `/admin` ekleyin.
+### 1) Veritabanı: Neon
+
+1. **neon.tech** adresine gidin, **Sign up** ile GitHub ya da Google hesabınızla kayıt olun.
+2. Yeni proje oluşturun:
+   - **Project name**: `otomotiv-mulakat`
+   - **Region**: **AWS Europe Central 1 (Frankfurt)** (siteyle aynı bölge, en hızlısı)
+   - Diğer ayarları olduğu gibi bırakıp **Create project**'e basın.
+3. Açılan sayfada **Connect** düğmesine basın. `postgresql://` ile başlayan bağlantı adresini **kopyala** simgesiyle kopyalayın.
+   Adreste şifre `****` olarak gizliyse önce **Show password**'a basın.
+   Bu adres şifre içerir, kimseyle paylaşmayın.
+
+### 2) Site: Render
+
+1. **render.com**'a GitHub hesabınızla (**orkancan6101-spec**) giriş yapın.
+2. **+ New → Blueprint**'i seçin ve `orkancan6101-spec / orkan` deposunda **Connect**'e basın.
+3. Formu doldurun:
+   - **Blueprint Name**: `otomotiv-mulakat`
+   - **Branch**: `claude/upbeat-newton-syzkmf` (varsayılan olarak başka bir dal gelir, mutlaka değiştirin)
+   - **Blueprint Path**: boş bırakın
+4. Aşağıda istenen iki değeri girin:
+   - **DATABASE_URL** → Neon'dan kopyaladığınız adres
+   - **ADMIN_PASSWORD** → yönetim paneli şifresi (güçlü bir şifre seçin ve not alın)
+
+   Mülakat günü (**6 Ekim 2026 Salı**) zaten ayarlı.
+5. **Deploy Blueprint**'e basın. Site 2–3 dakika içinde yayına girer.
+6. **otomotiv-mulakat** servisine tıklayın. Üstte `https://otomotiv-mulakat-xxxx.onrender.com` gibi bir adres görürsünüz.
+   **Adaylarla bu linki paylaşın.** Yönetim paneli için aynı adresin sonuna `/admin` ekleyin.
+
+> Site `DATABASE_URL` olmadan Render'da çalışmayı bilerek reddeder; böylece randevuların geçici bir yerde tutulup kaybolması önlenir.
+> Deploy "failed" görünürse **Logs** sekmesine bakın: `DATABASE_URL ayarlanmamış` yazıyorsa **Environment** sekmesinden adresi ekleyin.
 
 ### 7/24 açık kalma
 
@@ -49,10 +69,10 @@ Siz de yönetim panelini (`/admin`) telefondan ya da bilgisayardan istediğiniz 
 
 ### Bilmeniz gerekenler (ücretsiz plan)
 
-- **Veritabanı süresi:** Render'ın ücretsiz veritabanı oluşturulduktan **30 gün sonra** sona erer.
-  Mülakat süreci bu süre içinde biteceği için sorun olmaz; bittiğinde yönetim panelinden CSV'yi indirmeyi unutmayın.
-  Daha uzun süre lazımsa veritabanını Render'da ücretli plana geçirebilir ya da
-  [Neon](https://neon.tech) gibi ücretsiz bir PostgreSQL'in bağlantı adresini `DATABASE_URL` olarak girebilirsiniz.
+- **Veritabanı:** Neon'un ücretsiz veritabanı süresizdir. Kimse kullanmazken uykuya geçer ve ilk istekte yaklaşık 1 saniyede uyanır; adaylar bunu fark etmez.
+- **Yedek:** Mülakatlar bittiğinde yönetim panelinden **Excel / CSV indir** ile listeyi kaydedin.
+- **Kapatma:** Siteyi kapatmak istediğinizde Render'da **otomotiv-mulakat** → **Settings** → en alttaki **Delete Web Service**'e basın.
+  Randevu verilerini de silmek için Neon'da projeyi silin.
 
 ---
 
@@ -62,6 +82,7 @@ Render'da `otomotiv-mulakat` → **Environment** sekmesinden değiştirilebilir.
 
 | Değişken | Açıklama | Varsayılan |
 |---|---|---|
+| `DATABASE_URL` | Neon (veya başka bir PostgreSQL) bağlantı adresi. Render'da zorunludur | – |
 | `ADMIN_PASSWORD` | `/admin` paneli şifresi (boşsa panel kapalıdır) | – |
 | `INTERVIEW_DATE` | Mülakat günü (`YYYY-AA-GG`). Sayfada tarih olarak görünür, takvime eklemede kullanılır; saati geçen dilimler otomatik kapanır | `2026-10-06` (6 Ekim 2026 Salı) |
 | `LOCATION` | Mülakat yeri (örn. `Mühendislik Fakültesi, B Blok 204` veya `Google Meet`) | – |
