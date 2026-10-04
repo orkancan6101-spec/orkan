@@ -593,7 +593,7 @@ svg { display: block; }
 
 /* ---------- Yönetim paneli ---------- */
 
-.admin-main { padding: 32px 0 48px; }
+.admin-main { padding-top: 32px; padding-bottom: 48px; }
 .login-card { max-width: 420px; margin: 40px auto 0; }
 .login-card .panel__sub { margin-bottom: 20px; }
 
@@ -636,6 +636,41 @@ svg { display: block; }
   cursor: pointer;
 }
 .link-button:hover { background: var(--accent-soft); border-color: var(--danger); }
+.link-button:disabled { opacity: 0.6; cursor: wait; }
+.table td.action { text-align: right; white-space: nowrap; }
+
+/* Telefonda tablo yerine kartlar: "Randevuyu iptal et" düğmesi kaydırmadan görünür */
+@media (max-width: 759px) {
+  .admin-main .panel { padding: 12px; }
+  .table-wrap { overflow: visible; border: 0; }
+  .table { min-width: 0; }
+  .table thead { display: none; }
+  .table,
+  .table tbody,
+  .table tr,
+  .table td { display: block; width: 100%; }
+  .table tr {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    background: var(--surface);
+  }
+  .table tr.row--empty { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; }
+  .table tr.row--empty td { width: auto; }
+  .table tr.row--empty td.empty { display: none; }
+  .table td { padding: 4px 0; border: 0; }
+  .table tr.row--booked td.time,
+  .table tr.row--booked td.status { display: inline-block; width: auto; margin: 0 10px 6px 0; }
+  .table td.name { font-weight: 600; font-size: 15px; }
+  .table td[data-label]:not(.name)::before {
+    content: attr(data-label) ": ";
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .table td.action { text-align: left; padding-top: 10px; }
+  .table td.action .link-button { width: 100%; padding: 10px; font-size: 14px; }
+}
 
 .visually-hidden {
   position: absolute;

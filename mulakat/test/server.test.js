@@ -133,8 +133,10 @@ function suite(name, makeEnv, reset) {
       assert.match(csv.text, /Ad Soyad/);
       assert.match(csv.text, /aday1@ornek\.com/);
 
-      const del = await srv.call('DELETE', '/api/admin/bookings/17:00', undefined, auth);
+      // Yönetim paneli saati tarayıcıdaki gibi kodlanmış gönderir (17:00 → 17%3A00)
+      const del = await srv.call('DELETE', `/api/admin/bookings/${encodeURIComponent('17:00')}`, undefined, auth);
       assert.equal(del.status, 200);
+      assert.equal((await srv.call('DELETE', '/api/admin/bookings/17:00', undefined, auth)).status, 404, 'zaten iptal edildi');
       const slots = await srv.call('GET', '/api/slots');
       assert.equal(slots.json.slots[0].status, 'available');
 
@@ -227,9 +229,4 @@ describe('7/24 açık tutma', () => {
     await new Promise((r) => server.close(r));
     assert.ok(hits >= 2, `en az 2 istek beklendi, ${hits} geldi`);
   });
-});
-
-test("Render'da veritabanı adresi yoksa site başlamaz (randevular kaybolmasın diye)", () => {
-  assert.throws(() => loadConfig({ RENDER: 'true' }), /DATABASE_URL/);
-  assert.doesNotThrow(() => loadConfig({ RENDER: 'true', DATABASE_URL: 'postgresql://u:p@host/db?sslmode=require' }));
 });

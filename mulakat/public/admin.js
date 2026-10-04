@@ -39,9 +39,10 @@
     return res;
   }
 
-  function cell(text, className) {
+  function cell(text, className, label) {
     const td = document.createElement('td');
     if (className) td.className = className;
+    if (label) td.dataset.label = label; // telefonda kart görünümünde başlık olarak gösterilir
     td.textContent = text;
     return td;
   }
@@ -71,9 +72,11 @@
 
     const rows = slots.map((slot) => {
       const tr = document.createElement('tr');
+      tr.className = slot.booking ? 'row--booked' : 'row--empty';
       tr.append(cell(`${slot.start} – ${slot.end}`, 'time'));
 
       const statusTd = document.createElement('td');
+      statusTd.className = 'status';
       const [label, cls] = STATUS[slot.status];
       const badge = document.createElement('span');
       badge.className = `badge ${cls}`;
@@ -84,17 +87,24 @@
       const b = slot.booking;
       if (b) {
         const created = new Date(b.createdAt).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-        tr.append(cell(b.fullName), cell(b.email), cell(b.phone, 'nowrap'), cell(b.department || '—', b.department ? '' : 'muted'), cell(created, 'muted nowrap'));
+        tr.append(
+          cell(b.fullName, 'name', 'Ad Soyad'),
+          cell(b.email, '', 'E-posta'),
+          cell(b.phone, 'nowrap', 'Telefon'),
+          cell(b.department || '—', b.department ? '' : 'muted', 'Bölüm / Sınıf'),
+          cell(created, 'muted nowrap', 'Kayıt'),
+        );
         const actionTd = document.createElement('td');
+        actionTd.className = 'action';
         const cancel = document.createElement('button');
         cancel.type = 'button';
         cancel.className = 'link-button';
-        cancel.textContent = 'İptal et';
-        cancel.addEventListener('click', () => cancelBooking(slot, b));
+        cancel.textContent = 'Randevuyu iptal et';
+        cancel.addEventListener('click', () => cancelBooking(slot, b, cancel));
         actionTd.append(cancel);
         tr.append(actionTd);
       } else {
-        tr.append(cell('—', 'muted'), cell('', ''), cell('', ''), cell('', ''), cell('', ''), cell('', ''));
+        tr.append(cell('—', 'muted empty'), cell('', 'empty'), cell('', 'empty'), cell('', 'empty'), cell('', 'empty'), cell('', 'empty'));
       }
       return tr;
     });
@@ -123,16 +133,18 @@
     }
   }
 
-  async function cancelBooking(slot, booking) {
+  async function cancelBooking(slot, booking, button) {
     const ok = window.confirm(`${slot.start} saatindeki ${booking.fullName} randevusu iptal edilsin mi?\n\nBu saat tekrar seçime açılır ve aday yeniden randevu alabilir.`);
     if (!ok) return;
+    button.disabled = true;
+    button.textContent = 'İptal ediliyor…';
     try {
       await request(`/api/admin/bookings/${encodeURIComponent(slot.id)}`, { method: 'DELETE' });
-      toast('Randevu iptal edildi; saat tekrar seçime açıldı.', 'ok');
-      load();
+      toast(`${slot.start} randevusu iptal edildi; saat tekrar seçime açıldı.`, 'ok');
     } catch (err) {
       toast(err.message);
     }
+    load();
   }
 
   async function downloadCsv() {
