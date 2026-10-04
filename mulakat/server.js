@@ -23,6 +23,7 @@ function loadConfig(env = process.env) {
     startTime: get('START_TIME', '17:00'),
     endTime: get('END_TIME', '20:00'),
     slotMinutes: Number(get('SLOT_MINUTES', '10')),
+    slotCapacity: Number(get('SLOT_CAPACITY', '2')), // aynı saate alınabilecek kişi sayısı
     utcOffset: get('UTC_OFFSET', '+03:00'), // Türkiye saati
     adminPassword: env.ADMIN_PASSWORD || '',
     databaseUrl: env.DATABASE_URL || '',
@@ -41,6 +42,9 @@ function loadConfig(env = process.env) {
   }
   if (!/^[+-]\d{2}:\d{2}$/.test(config.utcOffset)) {
     throw new Error('UTC_OFFSET +SS:DD biçiminde olmalı (örn. +03:00).');
+  }
+  if (!Number.isInteger(config.slotCapacity) || config.slotCapacity < 1 || config.slotCapacity > 20) {
+    throw new Error('SLOT_CAPACITY 1 ile 20 arasında bir tam sayı olmalı.');
   }
   if (!Number.isInteger(config.slotMinutes) || config.slotMinutes < 5 || config.slotMinutes > 120) {
     throw new Error('SLOT_MINUTES 5 ile 120 arasında bir tam sayı olmalı.');
@@ -259,16 +263,22 @@ function createApp({ config, store }) {
     startTime: config.startTime,
     endTime: config.endTime,
     slotMinutes: config.slotMinutes,
+    slotCapacity: config.slotCapacity,
     totalSlots: slots.length,
+    totalCapacity: slots.length * config.slotCapacity,
   };
 
+  const statusOf = (slot, bookedCount, now) =>
+    bookedCount >= config.slotCapacity ? 'booked' : isClosed(slot, now) ? 'closed' : 'available';
+
   async function slotStatuses() {
-    const booked = await store.bookedSlotIds();
+    const counts = await store.bookedCounts();
     const now = Date.now();
-    return slots.map((s) => ({
-      ...s,
-      status: booked.has(s.id) ? 'booked' : isClosed(s, now) ? 'closed' : 'available',
-    }));
+    return slots.map((s) => {
+      const booked = Math.min(counts.get(s.id) || 0, config.slotCapacity);
+      const status = statusOf(s, booked, now);
+      return { ...s, status, booked, remaining: status === 'available' ? config.slotCapacity - booked : 0 };
+    });
   }
 
   function requireAdmin(req) {
@@ -300,10 +310,11 @@ function createApp({ config, store }) {
       return {
         status: 200,
         body: {
-          slots: list.map(({ id, start, end, status }) => ({ id, start, end, status })),
-          total: list.length,
-          available: list.filter((s) => s.status === 'available').length,
-          booked: list.filter((s) => s.status === 'booked').length,
+          slots: list.map(({ id, start, end, status, remaining }) => ({ id, start, end, status, remaining })),
+          capacity: config.slotCapacity,
+          total: list.length * config.slotCapacity, // toplam kişi kontenjanı
+          available: list.reduce((n, s) => n + s.remaining, 0), // boş yer
+          booked: list.reduce((n, s) => n + s.booked, 0), // alınan randevu
         },
       };
     },
@@ -322,11 +333,11 @@ function createApp({ config, store }) {
         throw new HttpError(409, 'slot_closed', 'Bu saatin süresi geçti. Lütfen başka bir saat seçin.');
       }
       try {
-        const booking = await store.create({ ...value, token: crypto.randomBytes(24).toString('base64url') });
+        const booking = await store.create({ ...value, token: crypto.randomBytes(24).toString('base64url') }, config.slotCapacity);
         return { status: 201, body: { booking: publicBooking(booking), token: booking.token } };
       } catch (err) {
         if (err instanceof BookingConflict && err.code === 'slot_taken') {
-          throw new HttpError(409, 'slot_taken', 'Bu saat az önce başka bir aday tarafından alındı. Lütfen başka bir saat seçin.');
+          throw new HttpError(409, 'slot_taken', 'Bu saatin kontenjanı az önce doldu. Lütfen başka bir saat seçin.');
         }
         if (err instanceof BookingConflict) {
           throw new HttpError(409, 'already_booked', 'Bu e-posta adresi veya telefon numarasıyla zaten bir randevu alınmış. Her aday yalnızca bir randevu alabilir.');
@@ -345,7 +356,6 @@ function createApp({ config, store }) {
     'GET /api/admin/bookings': async (req) => {
       requireAdmin(req);
       const bookings = await store.list();
-      const bySlot = new Map(bookings.map((b) => [b.slotId, b]));
       const now = Date.now();
       return {
         status: 200,
@@ -353,13 +363,21 @@ function createApp({ config, store }) {
           config: publicConfig,
           storage: store.kind,
           slots: slots.map((s) => {
-            const b = bySlot.get(s.id);
+            const own = bookings.filter((b) => b.slotId === s.id);
             return {
               id: s.id,
               start: s.start,
               end: s.end,
-              status: b ? 'booked' : isClosed(s, now) ? 'closed' : 'available',
-              booking: b ? { fullName: b.fullName, email: b.email, phone: formatPhone(b.phone), department: b.department, createdAt: b.createdAt } : null,
+              capacity: config.slotCapacity,
+              status: statusOf(s, own.length, now),
+              bookings: own.map((b) => ({
+                seat: b.seat,
+                fullName: b.fullName,
+                email: b.email,
+                phone: formatPhone(b.phone),
+                department: b.department,
+                createdAt: b.createdAt,
+              })),
             };
           }),
         },
@@ -369,11 +387,11 @@ function createApp({ config, store }) {
     'GET /api/admin/bookings.csv': async (req) => {
       requireAdmin(req);
       const bookings = await store.list();
-      const header = ['Saat', 'Bitiş', 'Ad Soyad', 'E-posta', 'Telefon', 'Bölüm / Sınıf', 'Kayıt Zamanı'];
+      const header = ['Saat', 'Bitiş', 'Sıra', 'Ad Soyad', 'E-posta', 'Telefon', 'Bölüm / Sınıf', 'Kayıt Zamanı'];
       const lines = bookings.map((b) => {
         const slot = slots.find((s) => s.id === b.slotId);
         const created = new Date(b.createdAt).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });
-        return [b.slotId, slot?.end, b.fullName, b.email, formatPhone(b.phone), b.department, created].map(csvCell).join(';');
+        return [b.slotId, slot?.end, b.seat, b.fullName, b.email, formatPhone(b.phone), b.department, created].map(csvCell).join(';');
       });
       const csv = `﻿${[header.join(';'), ...lines].join('\r\n')}\r\n`;
       return {
@@ -389,11 +407,12 @@ function createApp({ config, store }) {
     const pathname = url.pathname.replace(/\/+$/, '') || '/';
 
     try {
-      // Tarayıcı saatteki ":" işaretini "%3A" olarak gönderir; ikisi de kabul edilir.
-      const adminDelete = pathname.match(/^\/api\/admin\/bookings\/([0-9]{2})(?::|%3A)([0-9]{2})$/i);
+      // DELETE /api/admin/bookings/<saat>/<sıra>. Tarayıcı saatteki ":" işaretini
+      // "%3A" olarak gönderir; ikisi de kabul edilir. Sıra yazılmazsa 1 kabul edilir.
+      const adminDelete = pathname.match(/^\/api\/admin\/bookings\/([0-9]{2})(?::|%3A)([0-9]{2})(?:\/([0-9]{1,2}))?$/i);
       if (req.method === 'DELETE' && adminDelete) {
         requireAdmin(req);
-        const removed = await store.remove(`${adminDelete[1]}:${adminDelete[2]}`);
+        const removed = await store.remove(`${adminDelete[1]}:${adminDelete[2]}`, Number(adminDelete[3] || 1));
         if (!removed) throw new HttpError(404, 'not_found', 'Bu saatte randevu yok.');
         return send(res, 200, { ok: true });
       }

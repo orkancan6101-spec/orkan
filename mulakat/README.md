@@ -2,10 +2,10 @@
 
 Adayların mülakat saatini kendilerinin seçtiği web sitesi.
 
-- **17:00 – 20:00** arası, **10 dakikalık** 18 görüşme saati
-- Her saati **yalnızca bir kişi** alabilir; seçilen saat herkese anında "Dolu" görünür
+- **17:00 – 20:00** arası, **10 dakikalık** 18 görüşme saati; **her saatte 2 kişi** → toplam **36 kişi**
+- Bir saatin 2 yeri dolunca saat herkese anında "Dolu" görünür ve kapanır
 - Her aday **yalnızca bir randevu** alabilir (aynı e-posta veya telefonla ikinci randevu alınamaz)
-- Aynı anda birden fazla kişi aynı saate tıklarsa saati yalnızca biri alır (veritabanı seviyesinde garanti)
+- Aynı anda çok kişi aynı saate tıklarsa yalnızca 2 kişi alır (veritabanı seviyesinde garanti)
 - Sayfa her 15 saniyede bir kendini günceller; boş/dolu sayısı ve doluluk oranı canlı görünür
 - Randevu sonrası onay ekranı, **Google Takvim'e ekle** ve **.ics** takvim dosyası
 - Şifreli **yönetim paneli** (`/admin`): tüm randevular, iptal etme, **Excel/CSV** indirme
@@ -71,6 +71,7 @@ Render'da `otomotiv-mulakat` → **Environment** sekmesinden değiştirilebilir.
 | `SUBTITLE` | Başlığın altındaki soru | `Sizinle ne zaman görüşmemizi istersiniz?` |
 | `START_TIME` / `END_TIME` | Görüşme saat aralığı | `17:00` / `20:00` |
 | `SLOT_MINUTES` | Bir görüşmenin süresi (dakika) | `10` |
+| `SLOT_CAPACITY` | Aynı saate alınabilecek kişi sayısı | `2` |
 | `KEEP_ALIVE` | `off` yazılırsa sitenin kendini uyanık tutması kapanır | açık |
 
 > Saat aralığını veya süreyi, randevular alınmaya başladıktan **sonra** değiştirmeyin; mevcut randevular eski saatlere göre kayıtlıdır.
@@ -80,7 +81,9 @@ Render'da `otomotiv-mulakat` → **Environment** sekmesinden değiştirilebilir.
 ## Yönetim paneli (`/admin`)
 
 - Tüm saatleri, kimin hangi saati aldığını (ad, e-posta, telefon, bölüm) görürsünüz.
-- **İptal et**: bir randevuyu siler; saat tekrar seçime açılır ve o aday yeniden randevu alabilir.
+- Her saatin 2 yeri ayrı satırda (1. kişi / 2. kişi) görünür.
+- **Randevuyu iptal et**: o kişinin randevusunu siler; yer tekrar seçime açılır ve aday yeniden randevu alabilir.
+  Aynı saatteki diğer kişinin randevusu etkilenmez.
   (Adaylar kendi randevularını değiştiremez; değişiklik isteyen adayın randevusunu buradan iptal edip yeniden almasını isteyin.)
 - **Excel / CSV indir**: listeyi Excel'de açılabilir dosya olarak indirir.
 

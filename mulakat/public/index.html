@@ -46,7 +46,8 @@
         <p class="hero__lead">
           Kulübümüze gösterdiğiniz ilgi için teşekkür ederiz. Aşağıdaki takvimden size en uygun
           <strong><span data-bind="slotMinutes">10</span> dakikalık</strong> görüşme saatini seçin ve bilgilerinizi bırakın.
-          Her aday yalnızca bir randevu alabilir; seçilen saat diğer adaylara otomatik olarak kapanır.
+          Her saatte <strong><span data-bind="slotCapacity">2</span> kişilik</strong> kontenjan vardır ve her aday yalnızca bir randevu alabilir;
+          kontenjanı dolan saat otomatik olarak kapanır.
         </p>
         <ul class="chips" aria-label="Mülakat bilgileri">
           <li class="chip" data-show="interviewDate" hidden>
@@ -61,6 +62,10 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 1 16 0"/><path d="M12 12l4.5-3.5"/><circle cx="12" cy="12" r="1.4"/><path d="M4 16h16"/></svg>
             <span><span data-bind="slotMinutes">10</span> dakikalık görüşmeler</span>
           </li>
+          <li class="chip">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8.5" r="3"/><path d="M3.5 19c.6-3 2.8-5 5.5-5s4.9 2 5.5 5"/><circle cx="16.5" cy="9.5" r="2.5"/><path d="M15.5 14.2c2.4.2 4.3 1.9 4.9 4.8"/></svg>
+            <span>Her saatte <span data-bind="slotCapacity">2</span> kişi</span>
+          </li>
           <li class="chip" data-show="location" hidden>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0C18.5 15.4 12 21 12 21z"/><circle cx="12" cy="10" r="2.3"/></svg>
             <span data-bind="location"></span>
@@ -69,7 +74,7 @@
       </div>
 
       <aside class="capacity" aria-label="Kontenjan durumu">
-        <p class="capacity__label">Boş görüşme saati</p>
+        <p class="capacity__label">Boş kontenjan</p>
         <p class="capacity__value"><span id="statAvailable">–</span><span class="capacity__total"> / <span id="statTotal">–</span></span></p>
         <div class="meter" role="progressbar" aria-label="Doluluk oranı" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="fillMeter">
           <span class="meter__bar" id="fillBar"></span>
@@ -103,7 +108,7 @@
         <span class="step__num">3</span>
         <div>
           <h2 class="step__title">Onayınızı alın</h2>
-          <p class="step__text">Randevunuz anında kesinleşir ve saat diğer adaylara kapanır.</p>
+          <p class="step__text">Randevunuz anında kesinleşir; kontenjanı dolan saat kapanır.</p>
         </div>
       </li>
     </ol>
@@ -114,7 +119,7 @@
       <div class="panel__head">
         <div>
           <h2 class="panel__title" id="scheduleTitle">Görüşme saatini seçin</h2>
-          <p class="panel__sub" id="scheduleSub">Her kutu bir görüşmeyi temsil eder. Dolu saatler seçilemez.</p>
+          <p class="panel__sub" id="scheduleSub">Her saatte <span data-bind="slotCapacity">2</span> kişilik yer vardır. Kontenjanı dolan saatler seçilemez.</p>
         </div>
         <ul class="legend" aria-label="Renk açıklamaları">
           <li><span class="legend__swatch legend__swatch--free"></span>Boş</li>
@@ -218,7 +223,7 @@
       <article class="info-card">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.3-7.5 9.5-4.3-1.2-7.5-4.9-7.5-9.5V6L12 3z"/><path d="M9 12l2 2 4-4"/></svg>
         <h3>Adil sıralama</h3>
-        <p>Saatler ilk gelen alır esasına göre dağıtılır. Seçtiğiniz saat onaylandığı anda yalnızca size ayrılır.</p>
+        <p>Saatler ilk gelen alır esasına göre dağıtılır. Yeriniz onaylandığı anda size ayrılır.</p>
       </article>
       <article class="info-card">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>

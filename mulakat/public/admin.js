@@ -55,59 +55,72 @@
 
   function render(data) {
     const { slots, config } = data;
-    const booked = slots.filter((s) => s.booking).length;
-    const free = slots.filter((s) => s.status === 'available').length;
+    const capacity = config.slotCapacity || 1;
+    const total = slots.length * capacity;
+    const booked = slots.reduce((n, s) => n + s.bookings.length, 0);
+    const free = slots.reduce((n, s) => n + (s.status === 'closed' ? 0 : capacity - s.bookings.length), 0);
 
     $('#clubName').textContent = config.clubName;
     document.title = `${config.title} · Yönetim`;
     const date = config.interviewDate
       ? new Intl.DateTimeFormat('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(`${config.interviewDate}T12:00:00`))
       : 'Tarih belirtilmedi';
-    $('#dashSub').textContent = `${date} · ${config.startTime} – ${config.endTime} · ${config.slotMinutes} dakikalık görüşmeler`;
+    $('#dashSub').textContent = `${date} · ${config.startTime} – ${config.endTime} · ${config.slotMinutes} dakikalık görüşmeler · her saatte ${capacity} kişi`;
 
-    $('#statTotal').textContent = String(slots.length);
+    $('#statTotal').textContent = String(total);
     $('#statBooked').textContent = String(booked);
     $('#statFree').textContent = String(free);
-    $('#statFill').textContent = `%${slots.length ? Math.round((booked / slots.length) * 100) : 0}`;
+    $('#statFill').textContent = `%${total ? Math.round((booked / total) * 100) : 0}`;
 
-    const rows = slots.map((slot) => {
-      const tr = document.createElement('tr');
-      tr.className = slot.booking ? 'row--booked' : 'row--empty';
-      tr.append(cell(`${slot.start} – ${slot.end}`, 'time'));
+    const rows = [];
+    for (const slot of slots) {
+      for (let seat = 1; seat <= capacity; seat++) {
+        const b = slot.bookings.find((x) => x.seat === seat);
+        const tr = document.createElement('tr');
+        tr.className = `${b ? 'row--booked' : 'row--empty'}${seat === 1 ? ' row--slot-start' : ''}`;
 
-      const statusTd = document.createElement('td');
-      statusTd.className = 'status';
-      const [label, cls] = STATUS[slot.status];
-      const badge = document.createElement('span');
-      badge.className = `badge ${cls}`;
-      badge.textContent = label;
-      statusTd.append(badge);
-      tr.append(statusTd);
+        const timeTd = cell(`${slot.start} – ${slot.end}`, 'time');
+        if (capacity > 1) {
+          const seatLabel = document.createElement('span');
+          seatLabel.className = 'seat';
+          seatLabel.textContent = `${seat}. kişi`;
+          timeTd.append(seatLabel);
+        }
+        tr.append(timeTd);
 
-      const b = slot.booking;
-      if (b) {
-        const created = new Date(b.createdAt).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-        tr.append(
-          cell(b.fullName, 'name', 'Ad Soyad'),
-          cell(b.email, '', 'E-posta'),
-          cell(b.phone, 'nowrap', 'Telefon'),
-          cell(b.department || '—', b.department ? '' : 'muted', 'Bölüm / Sınıf'),
-          cell(created, 'muted nowrap', 'Kayıt'),
-        );
-        const actionTd = document.createElement('td');
-        actionTd.className = 'action';
-        const cancel = document.createElement('button');
-        cancel.type = 'button';
-        cancel.className = 'link-button';
-        cancel.textContent = 'Randevuyu iptal et';
-        cancel.addEventListener('click', () => cancelBooking(slot, b, cancel));
-        actionTd.append(cancel);
-        tr.append(actionTd);
-      } else {
-        tr.append(cell('—', 'muted empty'), cell('', 'empty'), cell('', 'empty'), cell('', 'empty'), cell('', 'empty'), cell('', 'empty'));
+        const statusTd = document.createElement('td');
+        statusTd.className = 'status';
+        const [label, cls] = STATUS[b ? 'booked' : slot.status === 'closed' ? 'closed' : 'available'];
+        const badge = document.createElement('span');
+        badge.className = `badge ${cls}`;
+        badge.textContent = label;
+        statusTd.append(badge);
+        tr.append(statusTd);
+
+        if (b) {
+          const created = new Date(b.createdAt).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+          tr.append(
+            cell(b.fullName, 'name', 'Ad Soyad'),
+            cell(b.email, '', 'E-posta'),
+            cell(b.phone, 'nowrap', 'Telefon'),
+            cell(b.department || '—', b.department ? '' : 'muted', 'Bölüm / Sınıf'),
+            cell(created, 'muted nowrap', 'Kayıt'),
+          );
+          const actionTd = document.createElement('td');
+          actionTd.className = 'action';
+          const cancel = document.createElement('button');
+          cancel.type = 'button';
+          cancel.className = 'link-button';
+          cancel.textContent = 'Randevuyu iptal et';
+          cancel.addEventListener('click', () => cancelBooking(slot, b, cancel));
+          actionTd.append(cancel);
+          tr.append(actionTd);
+        } else {
+          tr.append(cell('—', 'muted empty'), cell('', 'empty'), cell('', 'empty'), cell('', 'empty'), cell('', 'empty'), cell('', 'empty'));
+        }
+        rows.push(tr);
       }
-      return tr;
-    });
+    }
     $('#rows').replaceChildren(...rows);
     $('#lastUpdated').textContent = `Son güncelleme: ${new Date().toLocaleTimeString('tr-TR')} · Liste her 20 saniyede bir yenilenir.`;
   }
@@ -134,13 +147,13 @@
   }
 
   async function cancelBooking(slot, booking, button) {
-    const ok = window.confirm(`${slot.start} saatindeki ${booking.fullName} randevusu iptal edilsin mi?\n\nBu saat tekrar seçime açılır ve aday yeniden randevu alabilir.`);
+    const ok = window.confirm(`${slot.start} saatindeki ${booking.fullName} randevusu iptal edilsin mi?\n\nBu yer tekrar seçime açılır ve aday yeniden randevu alabilir.`);
     if (!ok) return;
     button.disabled = true;
     button.textContent = 'İptal ediliyor…';
     try {
-      await request(`/api/admin/bookings/${encodeURIComponent(slot.id)}`, { method: 'DELETE' });
-      toast(`${slot.start} randevusu iptal edildi; saat tekrar seçime açıldı.`, 'ok');
+      await request(`/api/admin/bookings/${encodeURIComponent(slot.id)}/${booking.seat}`, { method: 'DELETE' });
+      toast(`${slot.start} randevusu iptal edildi; yer tekrar seçime açıldı.`, 'ok');
     } catch (err) {
       toast(err.message);
     }

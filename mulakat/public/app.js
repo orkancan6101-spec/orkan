@@ -10,6 +10,7 @@
   const state = {
     config: null,
     slots: [],
+    totals: { total: 0, available: 0, booked: 0 },
     selected: null,
     myBooking: null,
     submitting: false,
@@ -79,6 +80,7 @@
       startTime: config.startTime,
       endTime: config.endTime,
       slotMinutes: String(config.slotMinutes),
+      slotCapacity: String(config.slotCapacity),
       location: config.location || '',
       contact: config.contact || '',
       dateLabel: dateLabel(config.interviewDate),
@@ -93,9 +95,7 @@
   // ---------- Kontenjan ve saatler ----------
 
   function renderStats() {
-    const total = state.slots.length;
-    const available = state.slots.filter((s) => s.status === 'available').length;
-    const booked = state.slots.filter((s) => s.status === 'booked').length;
+    const { total, available, booked } = state.totals; // kişi (yer) sayıları
     const fill = total ? Math.round((booked / total) * 100) : 0;
 
     $('#statAvailable').textContent = String(available);
@@ -105,8 +105,8 @@
     $('#fillMeter').setAttribute('aria-valuenow', String(fill));
 
     let note;
-    if (available === 0) note = 'Tüm görüşme saatleri dolmuştur. İlginiz için teşekkür ederiz.';
-    else if (available <= 3) note = `Son ${available} görüşme saati! Hemen seçiminizi yapın.`;
+    if (available === 0) note = 'Tüm kontenjan dolmuştur. İlginiz için teşekkür ederiz.';
+    else if (available <= 3) note = `Son ${available} kişilik yer kaldı! Hemen seçiminizi yapın.`;
     else note = `${booked} aday randevusunu aldı. Saatler ilk gelen alır esasına göre dağıtılır.`;
     $('#capacityNote').textContent = note;
   }
@@ -116,7 +116,8 @@
     if (slot.status === 'booked') return { cls: 'booked', text: 'Dolu' };
     if (slot.status === 'closed') return { cls: 'closed', text: 'Kapandı' };
     if (state.selected === slot.id) return { cls: 'selected', text: 'Seçildi' };
-    return { cls: 'available', text: 'Müsait' };
+    if (slot.remaining === 1) return { cls: 'available slot--last', text: 'Son 1 yer' };
+    return { cls: 'available', text: `${slot.remaining} yer boş` };
   }
 
   function renderSlots() {
@@ -141,11 +142,12 @@
       title.textContent = `${hour}:00 – ${nextHour}:00`;
       const count = document.createElement('p');
       count.className = 'slot-group__count';
-      const free = slots.filter((s) => s.status === 'available').length;
+      const free = slots.reduce((n, s) => n + (s.status === 'available' ? s.remaining : 0), 0);
+      const capacity = slots.length * ((state.config && state.config.slotCapacity) || 1);
       if (free > 0) {
         const strong = document.createElement('strong');
-        strong.textContent = `${free} boş`;
-        count.append(strong, ` / ${slots.length}`);
+        strong.textContent = `${free} boş yer`;
+        count.append(strong, ` / ${capacity}`);
       } else {
         count.textContent = 'Bu saat dilimi doldu';
       }
@@ -159,7 +161,7 @@
         button.type = 'button';
         button.className = `slot slot--${cls}`;
         button.dataset.slot = slot.id;
-        const selectable = cls === 'available' || cls === 'selected';
+        const selectable = cls.startsWith('available') || cls === 'selected';
         button.disabled = !selectable || Boolean(state.myBooking);
         if (cls === 'mine') button.disabled = false; // görünür kalsın, tıklanınca bir şey yapmaz
         button.setAttribute('aria-pressed', String(cls === 'selected'));
@@ -219,6 +221,7 @@
     try {
       const data = await api('/api/slots');
       state.slots = data.slots;
+      state.totals = { total: data.total, available: data.available, booked: data.booked };
       state.lastUpdated = new Date();
 
       if (state.selected) {

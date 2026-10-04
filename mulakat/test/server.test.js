@@ -55,25 +55,29 @@ function suite(name, makeEnv, reset) {
     });
     after(() => srv.close());
 
-    test('17:00–20:00 arası 10 dakikalık 18 saat listelenir', async () => {
+    test('17:00–20:00 arası 10 dakikalık 18 saat, her saatte 2 kişi: toplam 36 kişi', async () => {
       const { status, json } = await srv.call('GET', '/api/slots');
       assert.equal(status, 200);
-      assert.equal(json.total, 18);
+      assert.equal(json.slots.length, 18);
+      assert.equal(json.capacity, 2);
+      assert.equal(json.total, 36);
+      assert.equal(json.available, 36);
       assert.equal(json.slots[0].id, '17:00');
       assert.equal(json.slots[17].id, '19:50');
       assert.equal(json.slots[17].end, '20:00');
-      assert.ok(json.slots.every((s) => s.status === 'available'));
+      assert.ok(json.slots.every((s) => s.status === 'available' && s.remaining === 2));
     });
 
-    test('randevu alınır, saat kapanır ve aday kendi randevusunu görür', async () => {
+    test('randevu alınır, saatte 1 yer kalır ve aday kendi randevusunu görür', async () => {
       const res = await srv.call('POST', '/api/bookings', { slotId: '17:00', ...person(1) });
       assert.equal(res.status, 201);
       assert.ok(res.json.token);
       assert.equal(res.json.booking.start, '17:00');
 
       const slots = await srv.call('GET', '/api/slots');
-      assert.equal(slots.json.slots[0].status, 'booked');
-      assert.equal(slots.json.available, 17);
+      assert.equal(slots.json.slots[0].status, 'available');
+      assert.equal(slots.json.slots[0].remaining, 1);
+      assert.equal(slots.json.available, 35);
       assert.ok(!slots.text.includes('aday1@ornek.com'), 'herkese açık listede kişisel bilgi olmamalı');
 
       const me = await srv.call('GET', '/api/bookings/me', undefined, { 'X-Booking-Token': res.json.token });
@@ -81,10 +85,17 @@ function suite(name, makeEnv, reset) {
       assert.equal(me.json.booking.slotId, '17:00');
     });
 
-    test('dolu saat ikinci kişiye verilmez', async () => {
-      const res = await srv.call('POST', '/api/bookings', { slotId: '17:00', ...person(2) });
-      assert.equal(res.status, 409);
-      assert.equal(res.json.error, 'slot_taken');
+    test('aynı saate ikinci kişi alınır, üçüncü kişi alınmaz', async () => {
+      const second = await srv.call('POST', '/api/bookings', { slotId: '17:00', ...person(2) });
+      assert.equal(second.status, 201);
+      const third = await srv.call('POST', '/api/bookings', { slotId: '17:00', ...person(3) });
+      assert.equal(third.status, 409);
+      assert.equal(third.json.error, 'slot_taken');
+
+      const slots = await srv.call('GET', '/api/slots');
+      assert.equal(slots.json.slots[0].status, 'booked');
+      assert.equal(slots.json.slots[0].remaining, 0);
+      assert.equal(slots.json.booked, 2);
     });
 
     test('aynı e-posta veya telefon ikinci randevu alamaz', async () => {
@@ -97,11 +108,11 @@ function suite(name, makeEnv, reset) {
       assert.equal(samePhone.json.error, 'already_booked');
     });
 
-    test('aynı anda 40 kişi aynı saati seçerse yalnızca biri alır', async () => {
+    test('aynı anda 40 kişi aynı saati seçerse yalnızca 2 kişi alır', async () => {
       const results = await Promise.all(
         Array.from({ length: 40 }, (_, i) => srv.call('POST', '/api/bookings', { slotId: '18:00', ...person(100 + i) })),
       );
-      assert.equal(results.filter((r) => r.status === 201).length, 1);
+      assert.equal(results.filter((r) => r.status === 201).length, 2);
       assert.ok(results.filter((r) => r.status !== 201).every((r) => r.json.error === 'slot_taken'));
     });
 
@@ -125,8 +136,10 @@ function suite(name, makeEnv, reset) {
       const list = await srv.call('GET', '/api/admin/bookings', undefined, auth);
       assert.equal(list.status, 200);
       const first = list.json.slots.find((s) => s.id === '17:00');
-      assert.equal(first.booking.email, 'aday1@ornek.com');
-      assert.equal(first.booking.phone, '0532 100 00 01');
+      assert.equal(first.status, 'booked');
+      assert.deepEqual(first.bookings.map((b) => b.seat), [1, 2]);
+      assert.equal(first.bookings[0].email, 'aday1@ornek.com');
+      assert.equal(first.bookings[0].phone, '0532 100 00 01');
 
       const csv = await srv.call('GET', '/api/admin/bookings.csv', undefined, auth);
       assert.equal(csv.status, 200);
@@ -134,11 +147,20 @@ function suite(name, makeEnv, reset) {
       assert.match(csv.text, /aday1@ornek\.com/);
 
       // Yönetim paneli saati tarayıcıdaki gibi kodlanmış gönderir (17:00 → 17%3A00)
-      const del = await srv.call('DELETE', `/api/admin/bookings/${encodeURIComponent('17:00')}`, undefined, auth);
+      const del = await srv.call('DELETE', `/api/admin/bookings/${encodeURIComponent('17:00')}/1`, undefined, auth);
       assert.equal(del.status, 200);
-      assert.equal((await srv.call('DELETE', '/api/admin/bookings/17:00', undefined, auth)).status, 404, 'zaten iptal edildi');
-      const slots = await srv.call('GET', '/api/slots');
+      assert.equal((await srv.call('DELETE', '/api/admin/bookings/17:00/1', undefined, auth)).status, 404, 'zaten iptal edildi');
+      let slots = await srv.call('GET', '/api/slots');
       assert.equal(slots.json.slots[0].status, 'available');
+      assert.equal(slots.json.slots[0].remaining, 1);
+
+      // Boşalan yer yeni bir adaya verilir; diğer kişinin randevusu yerinde kalır
+      const newcomer = await srv.call('POST', '/api/bookings', { slotId: '17:00', ...person(700) });
+      assert.equal(newcomer.status, 201);
+      slots = await srv.call('GET', '/api/slots');
+      assert.equal(slots.json.slots[0].status, 'booked');
+      const after = await srv.call('GET', '/api/admin/bookings', undefined, auth);
+      assert.deepEqual(after.json.slots[0].bookings.map((b) => b.email), ['aday700@ornek.com', 'aday2@ornek.com']);
 
       // İptal edilen aday yeniden randevu alabilir
       const again = await srv.call('POST', '/api/bookings', { slotId: '17:20', ...person(1) });
@@ -165,7 +187,46 @@ if (process.env.TEST_DATABASE_URL) {
       await client.end();
     },
   );
+
+  test('eski veritabanı (saat başına 1 kişi) kayıtlar korunarak 2 kişiye geçirilir', async () => {
+    const { Client } = require('pg');
+    const client = new Client({ connectionString: process.env.TEST_DATABASE_URL });
+    await client.connect();
+    await client.query('DROP TABLE IF EXISTS bookings');
+    await client.query(`CREATE TABLE bookings (
+      slot_id TEXT PRIMARY KEY, full_name TEXT NOT NULL, email TEXT NOT NULL, phone TEXT NOT NULL,
+      department TEXT NOT NULL DEFAULT '', token TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
+    await client.query(`INSERT INTO bookings (slot_id, full_name, email, phone, token)
+      VALUES ('17:00', 'Eski Aday', 'eski@ornek.com', '5321234567', 'eski-token')`);
+    await client.end();
+
+    const srv = await startServer({ DATABASE_URL: process.env.TEST_DATABASE_URL });
+    try {
+      const slots = await srv.call('GET', '/api/slots');
+      assert.equal(slots.json.slots[0].remaining, 1, 'eski randevu korunmalı');
+      const me = await srv.call('GET', '/api/bookings/me', undefined, { 'X-Booking-Token': 'eski-token' });
+      assert.equal(me.json.booking.fullName, 'Eski Aday');
+      assert.equal((await srv.call('POST', '/api/bookings', { slotId: '17:00', ...person(1) })).status, 201);
+      assert.equal((await srv.call('POST', '/api/bookings', { slotId: '17:00', ...person(2) })).status, 409);
+    } finally {
+      await srv.close();
+    }
+  });
 }
+
+describe('kontenjan ayarı', () => {
+  test('SLOT_CAPACITY=1 ile her saate tek kişi alınır', async () => {
+    const srv = await startServer({ DATA_FILE: path.join(tmpDir, 'cap1.json'), SLOT_CAPACITY: '1' });
+    try {
+      assert.equal((await srv.call('POST', '/api/bookings', { slotId: '17:00', ...person(1) })).status, 201);
+      const second = await srv.call('POST', '/api/bookings', { slotId: '17:00', ...person(2) });
+      assert.equal(second.status, 409);
+      assert.equal((await srv.call('GET', '/api/slots')).json.total, 18);
+    } finally {
+      await srv.close();
+    }
+  });
+});
 
 describe('tarih ayarı', () => {
   test('geçmiş tarihteki saatler kapanır ve seçilemez', async () => {
