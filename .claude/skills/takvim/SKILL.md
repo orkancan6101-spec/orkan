@@ -18,20 +18,6 @@ argument-hint: "[ne, ne zaman]"
   3. Kullanıcıya bir kez şunu söyle: "claude.ai → Ayarlar → Bağlayıcılar'dan
      Google Calendar'ı bağlarsan bunu kendim eklerim."
 
-## Takvimde zaten olanlar
-- **Rutin bloklar** (profildeki `haftalik_sabitler`, `tur: "rutin"`) Google
-  Takvim'de **tekrarlayan etkinlik** olarak kurulu. Açıklamalarında
-  `planlayici:iz=<iz>` geçer; bitiş tarihi 17 Ocak 2027. Sınav dönemi
-  günleri EXDATE ile çıkarılmıştır.
-- Bunları günlük olarak **tekrar ekleme.** Günlük olarak yalnızca görev
-  (odak) blokları eklenir.
-- **Rutin programı değişirse** (profil güncellenirse) ilgili tekrarlayan
-  etkinliği `search_events` ile `planlayici:iz=` üzerinden bul ve
-  `update_event` ile güncelle: saat, RRULE, EXDATE. Yeni sınav dönemi
-  eklenirse `sinavda: false` blokların o günlerini EXDATE'e ekle.
-- **Ders saatleri takvimde değil.** Profilde `takvim.dersler_kurulu: true`
-  olursa onlar da tekrarlayan etkinliktir.
-
 ## Yazmadan önce
 1. **Çakışma kontrolü.** İlgili zaman aralığını `list_events` ile çek.
    Çakışma varsa yazma; en yakın 2 boş aralığı öner (`suggest_time` varsa

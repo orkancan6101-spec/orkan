@@ -174,9 +174,6 @@ panoya yaz. Böylece panodaki sıra güncel kalır.
   Google Takvim bağlayıcısını bağlamasını öner.
 - Planlayıcının oluşturduğu her etkinliğin açıklamasına
   `planlayici:gorev=<id>` yaz. Sonradan bulup taşıyabilmek için bu gerekli.
-- Rutin bloklar takvimde zaten tekrarlayan etkinlik olarak kurulu
-  (`planlayici:iz=<iz>`, 17 Ocak 2027'ye kadar). Günlük olarak yalnızca
-  görev blokları eklenir (bkz. `/takvim`).
 
 ## Rutin modu (kullanıcı yokken)
 
