@@ -46,14 +46,20 @@ VARSAYILAN_PROFIL = {
     },
     "gunluk_max_is_dk": {"hafta_ici": 300, "hafta_sonu": 240},
     "zirve_saatleri": [["09:00", "12:30"]],
-    # Ders programı, takım toplantısı gibi her hafta tekrarlayan meşguliyetler
+    # Her hafta tekrarlayan bloklar: {"gun": "pazartesi" | ["sali", "persembe"] | "hafta_ici" | "her_gun",
+    #  "bas", "bit", "baslik", "tur": "ders" | "takim" | "rutin", "iz", "enerji", "sinavda": bool,
+    #  "bas_tarih"/"bit_tarih": geçici bloklar için geçerlilik aralığı}
+    # tur=rutin olanlar (SolidWorks, Almanca gibi öğrenme izleri) günlük odak kapasitesinden düşülür.
     "haftalik_sabitler": [],
+    # Sınav dönemleri: [{"bas": "YYYY-MM-DD", "bit": "YYYY-MM-DD"}]; bu günlerde sinavda=false rutinler düşer
+    "sinav_donemleri": [],
     "gunluk_derin_limit_dk": 240,
     "blok_dk": 90,
     "mola_dk": 10,
     "tampon_orani": 0.2,
     "tahmin_katsayisi": None,  # None → tamamlanan görevlerden öğrenilir
     "varsayilan_tahmin_dk": 60,
+    "derin_son_saat": "21:00",  # derin işler bu saatten sonra başlamaz
 }
 
 
@@ -216,6 +222,9 @@ def ham_kalan(g: dict, profil: dict) -> tuple[float, bool]:
 
 
 def efektif_kalan(g: dict, profil: dict, k: float) -> int:
+    # Zaman kutusu ("bu hafta 5 saat SolidWorks") bir tahmin değil, ayrılmış süredir: katsayı uygulanmaz
+    if g.get("zaman_kutusu"):
+        k = 1.0
     return int(math.ceil(ham_kalan(g, profil)[0] * k / 5.0) * 5)
 
 
@@ -247,15 +256,61 @@ def etkinlik_mesgulleri(tablo: dict) -> list[tuple[datetime, datetime, str]]:
     return sonuc
 
 
+def _gun_eslesir(deger, gun: date) -> bool:
+    if isinstance(deger, int) and not isinstance(deger, bool):
+        return deger == gun.weekday()
+    d = str(deger).lower()
+    return (d in (str(gun.weekday()), GUN_ANAHTARLARI[gun.weekday()]) or d == "her_gun"
+            or (d == "hafta_ici" and gun.weekday() < 5) or (d == "hafta_sonu" and gun.weekday() >= 5))
+
+
+def sinav_doneminde(profil: dict, gun: date) -> bool:
+    for d in profil.get("sinav_donemleri") or []:
+        try:
+            if date.fromisoformat(d["bas"]) <= gun <= date.fromisoformat(d["bit"]):
+                return True
+        except (KeyError, ValueError):
+            continue
+    return False
+
+
+def gun_sabitleri(profil: dict, gun: date) -> list[dict]:
+    """O güne düşen haftalık bloklar. Sınav döneminde sinavda=false olan rutinler düşer."""
+    sinavda = sinav_doneminde(profil, gun)
+    sonuc = []
+    for s in profil.get("haftalik_sabitler") or []:
+        gunler = s.get("gun") if isinstance(s.get("gun"), list) else [s.get("gun")]
+        if not any(_gun_eslesir(g, gun) for g in gunler):
+            continue
+        if sinavda and s.get("sinavda") is False:
+            continue
+        # İsteğe bağlı geçerlilik aralığı: bas_tarih / bit_tarih (YYYY-MM-DD, ikisi de dahil)
+        try:
+            if s.get("bas_tarih") and gun < date.fromisoformat(s["bas_tarih"]):
+                continue
+            if s.get("bit_tarih") and gun > date.fromisoformat(s["bit_tarih"]):
+                continue
+        except ValueError:
+            pass
+        sonuc.append(s)
+    return sonuc
+
+
+def rutin_dk(profil: dict, gun: date, sadece_derin: bool = False) -> int:
+    """Odak kapasitesinden düşülecek rutin süresi. enerji=hafif rutinler (akşam okuması gibi) sayılmaz."""
+    return sum(
+        dk(s["bit"]) - dk(s["bas"]) for s in gun_sabitleri(profil, gun)
+        if s.get("tur") == "rutin" and s.get("enerji") != "hafif"
+        and (not sadece_derin or s.get("enerji") == "derin")
+    )
+
+
 def gun_serbest(profil: dict, gun: date, mesgul, alt: datetime | None = None,
                 ust: datetime | None = None) -> list[list[int]]:
     """Bir günün boş çalışma aralıkları (dakika). alt/ust ile kırpılır."""
     pencereler = [[dk(a), dk(b)] for a, b in gun_degeri(profil["calisma_pencereleri"], gun, [])]
-    for s in profil.get("haftalik_sabitler") or []:
-        sgun = s.get("gun")
-        eslesir = sgun == gun.weekday() or str(sgun).lower() in (str(gun.weekday()), GUN_ANAHTARLARI[gun.weekday()])
-        if eslesir:
-            pencereler = cikar(pencereler, (dk(s["bas"]), dk(s["bit"])))
+    for s in gun_sabitleri(profil, gun):
+        pencereler = cikar(pencereler, (dk(s["bas"]), dk(s["bit"])))
     gun_bas = datetime(gun.year, gun.month, gun.day)
     for bas, bit, _ in mesgul:
         if bit <= gun_bas or bas >= gun_bas + timedelta(days=1):
@@ -272,8 +327,9 @@ def gun_serbest(profil: dict, gun: date, mesgul, alt: datetime | None = None,
 
 
 def gun_kapasitesi(profil: dict, gun: date, serbest: list[list[int]]) -> int:
+    """Görevlere kalan odak süresi: boş zamanın tampon sonrası kısmı, günlük tavandan rutinler düşülerek."""
     toplam = sum(b - s for s, b in serbest)
-    tavan = gun_degeri(profil["gunluk_max_is_dk"], gun, 300)
+    tavan = max(0, gun_degeri(profil["gunluk_max_is_dk"], gun, 300) - rutin_dk(profil, gun))
     return int(min(toplam * (1 - profil["tampon_orani"]), tavan))
 
 
@@ -433,16 +489,25 @@ def gun_plani(gorevler, profil, tarih: date, simdi=None, mesgul=None) -> dict:
     serbest = gun_serbest(profil, tarih, tum_mesgul, alt=alt)
     bos_dk = sum(b - s for s, b in serbest)
     butce = gun_kapasitesi(profil, tarih, serbest)
-    derin_butce = int(profil["gunluk_derin_limit_dk"])
+    derin_butce = max(0, int(profil["gunluk_derin_limit_dk"]) - rutin_dk(profil, tarih, sadece_derin=True))
+    derin_baslangic = derin_butce
     zirve = [(dk(a), dk(b)) for a, b in profil.get("zirve_saatleri") or []]
     blok, mola = int(profil["blok_dk"]), int(profil["mola_dk"])
+    derin_son = dk(profil.get("derin_son_saat") or "21:00")
     yuvalar = [list(y) for y in serbest]
+    # Bir dersin ya da rutin bloğun hemen ardından gelen boşluk, mola kadar geç başlar
+    sabit_bitisleri = {dk(s["bit"]) for s in gun_sabitleri(profil, tarih)}
+    for y in yuvalar:
+        if y[0] in sabit_bitisleri:
+            y[0] = min(y[1], y[0] + mola)
 
     def zirvede(y):
         return sum(ortusme(tuple(y), z) for z in zirve) > 0
 
     def yer_bul(sure: int, enerji: str):
         uygun = [y for y in yuvalar if y[1] - y[0] >= 5]
+        if enerji == "derin":
+            uygun = [y for y in uygun if y[0] < derin_son]
         if enerji == "derin":
             uygun.sort(key=lambda y: (not zirvede(y), y[0]))
         elif enerji == "hafif":
@@ -478,7 +543,8 @@ def gun_plani(gorevler, profil, tarih: date, simdi=None, mesgul=None) -> dict:
             pay = E
         else:
             pay = min(E, blok)
-        pay = min(E, int(math.ceil(pay / 5.0) * 5))
+        # Günlük pay tam odak bloklarına yuvarlanır (en az bir blok); iş bir bloktan kısaysa tamamı
+        pay = E if E <= blok else min(E, max(blok, round(pay / blok) * blok))
 
         yerlesen = 0
         while yerlesen < pay and butce > 0:
@@ -487,7 +553,8 @@ def gun_plani(gorevler, profil, tarih: date, simdi=None, mesgul=None) -> dict:
             istek = min(blok, pay - yerlesen, butce)
             if r["enerji"] == "derin":
                 istek = min(istek, derin_butce)
-            if istek < min(15, pay - yerlesen):
+            # 25 dakikadan kısa parça planlanmaz (bir bloktan kısa küçük işler hariç)
+            if istek < 25 and not (yerlesen == 0 and E < 25):
                 break
             yuva, sure = yer_bul(istek, r["enerji"])
             if not yuva:
@@ -515,11 +582,13 @@ def gun_plani(gorevler, profil, tarih: date, simdi=None, mesgul=None) -> dict:
             s = max(bas, gun_bas)
             b = min(bit, gun_bas + timedelta(hours=23, minutes=59))
             bloklar.append({"bas": s.strftime("%H:%M"), "bit": b.strftime("%H:%M"), "tur": "sabit", "baslik": ad})
-    for s in profil.get("haftalik_sabitler") or []:
-        sgun = s.get("gun")
-        if sgun == tarih.weekday() or str(sgun).lower() in (str(tarih.weekday()), GUN_ANAHTARLARI[tarih.weekday()]):
-            bloklar.append({"bas": s["bas"], "bit": s["bit"], "tur": "sabit", "baslik": s.get("baslik", "Sabit program")})
-    bloklar.sort(key=lambda b: (b["bas"], b["tur"] != "sabit"))
+    for s in gun_sabitleri(profil, tarih):
+        blok_kaydi = {"bas": s["bas"], "bit": s["bit"], "tur": s.get("tur") or "sabit",
+                      "baslik": s.get("baslik", "Sabit program")}
+        if s.get("iz"):
+            blok_kaydi["iz"] = s["iz"]
+        bloklar.append(blok_kaydi)
+    bloklar.sort(key=lambda b: (b["bas"], b["tur"] == "odak"))
 
     # Günün en önemli işleri: planlanan bloklardan önemli kadranlar (1-2), en fazla 3
     rapor = {r["id"]: r for r in sirali}
@@ -550,8 +619,10 @@ def gun_plani(gorevler, profil, tarih: date, simdi=None, mesgul=None) -> dict:
             "bos_dk": bos_dk,
             "kapasite_dk": gun_kapasitesi(profil, tarih, serbest),
             "planlanan_dk": planlanan,
-            "derin_dk": int(profil["gunluk_derin_limit_dk"]) - derin_butce,
+            "derin_dk": derin_baslangic - derin_butce,
+            "rutin_dk": rutin_dk(profil, tarih),
         },
+        "sinav_modu": sinav_doneminde(profil, tarih),
         "uyarilar": uyarilar,
     }
 
@@ -644,7 +715,7 @@ def yaz_plan(plan: dict, tablo: dict | None = None) -> str:
         "",
     ]
     for b in plan["bloklar"]:
-        isaret = "■" if b["tur"] == "sabit" else "▶"
+        isaret = {"odak": "▶", "rutin": "↻"}.get(b["tur"], "■")
         cikti.append(f"  {b['bas']}–{b['bit']}  {isaret} {b['baslik']}" + (f"  ({b['enerji']})" if b.get("enerji") else ""))
     if plan["mit"]:
         adlar = [next((b["baslik"] for b in plan["bloklar"] if b.get("gorev_id") == i), i) for i in plan["mit"]]

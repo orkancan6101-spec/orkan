@@ -48,20 +48,29 @@ bir bildirim özeti üret.
    - Değişiklik yaptıysan bunu `plan.json` üzerinde yap. Örnek: blokları
      elle düzenle, `mit` listesini güncelle.
 
-6. **Yorum.** Günün planına 2–3 cümlelik bir not yaz (`--yorum` ya da
+6. **Rutin blokların içeriği.** Plandaki her `tur: "rutin"` bloğu için
+   `izler/<iz>` belgesinin `sonraki` alanından tek satırlık somut içerik
+   yaz. Örnek: "21:30 Almanca: Nicos Weg A1 Bölüm 5 + 10 kelime".
+   - "Ders tekrarı" bloğuna `izler/dersler.tekrar_kuyrugu` içinde tarihi
+     bugün ya da geçmiş olan tekrarları ekle. Örnek: "17:00 Tekrar:
+     MEC.MAT gerilme dönüşümü (2/3) + bugünkü MÜHTER II notu".
+   - Bu haftanın hedefinin gerisinde kalan izi yorumda belirt.
+   - Sınav dönemindeysen (`plan.sinav_modu`) bunu en üstte söyle.
+
+7. **Yorum.** Günün planına 2–3 cümlelik bir not yaz (`--yorum` ya da
    `plan.json`'daki `yorum` alanı). Kullanıcıya ikinci tekil şahısla, doğrudan
    hitap et. Bugünün ana riski ne, neye odaklanmalı, neyi bırakabilir.
    Örnek: "Rapor yarın 12:00'de teslim ve 5 saat açığın var. Sabahki iki derin
    bloğu yalnızca rapora ver, mukavemet ödevini perşembeye kaydırdım."
 
-7. **Panoya yaz.** `planlar/<T>` belgesini kaydet (P3).
+8. **Panoya yaz.** `planlar/<T>` belgesini kaydet (P3).
 
-8. **Takvim.** Etkileşimli modda odak bloklarını takvime eklemeyi öner
+9. **Takvim.** Etkileşimli modda odak bloklarını takvime eklemeyi öner
    (`/takvim`). Rutin modunda yalnızca `takvim_yazma: "otomatik"` ise ekle.
    Aynı gün için önceden eklenmiş `planlayici:` blokları varsa yenilerini
    ekleme. Önce eskileri güncelle ya da taşı; silmen gerekiyorsa onay iste.
 
-9. **E-posta (isteğe bağlı).** Gmail bağlıysa ve kullanıcı istemişse
+10. **E-posta (isteğe bağlı).** Gmail bağlıysa ve kullanıcı istemişse
    (profilde `sabah_eposta_tarama: true`) son 24 saatin e-postalarını
    `/eposta-tara` mantığıyla tara. Görev adaylarını yalnızca özette listele;
    onaysız görev oluşturma.

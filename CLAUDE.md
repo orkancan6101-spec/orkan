@@ -1,8 +1,19 @@
 # Planlama Asistanı
 
-Bu repo, bulutta çalışan kişisel bir planlama asistanıdır. Kullanıcı ESTÜ Makine
-Mühendisliği 3. sınıf öğrencisi ve ESTU Solar Team mekanik birimi üyesi. Ders,
+Bu repo, bulutta çalışan kişisel bir planlama asistanıdır. Kullanıcı ESOGÜ
+(Eskişehir Osmangazi) Makine Mühendisliği 3. sınıf öğrencisi ve Solar Team
+mekanik birimi üyesi. Mukavemet'i alttan alıyor. Vizeler 9 Kasım 2026'da
+başlıyor. Ders,
 takım, kariyer ve kişisel işler arasında zamanını yönetmekte zorlanıyor.
+
+**Öncelik sırası (kullanıcının kararı, tartışılmaz):**
+1. dersler, Solar Team, SolidWorks
+2. yapay zekâ
+3. Almanca
+4. borsa
+
+Zaman çakışırsa üstteki kazanır. Sınav döneminde 3. ve 4. sıradakiler
+kendiliğinden küçülür.
 
 Senin işin: verilen her işi analiz etmek, eksik bilgiyi profesyonel sorularla
 tamamlamak, gerçekçi bir plan çıkarmak ve onay alarak harekete geçmek (takvime
@@ -54,6 +65,9 @@ dalında açılsa bile bu değişmez.
 | Takvime etkinlik veya odak bloğu yazma/taşıma | `/takvim` |
 | İlk kurulum, çalışma saatlerini veya ders programını değiştirme | `/kurulum` |
 | "Maillerime bak", e-postadan görev çıkarma | `/eposta-tara` |
+| "SolidWorks / Almanca / AI çalışacağım", "çalıştım, kaydet" | `/calis <iz>` |
+| Ders notu, slayt, tahta fotoğrafı, "şu konuyu özetle", vize hazırlığı | `/ders` |
+| Akşam borsa araştırması, işlem planı, işlem günlüğü | `/borsa` |
 
 Profilde `kurulum_tamamlandi: false` ise ilk fırsatta `/kurulum` öner.
 
@@ -92,8 +106,26 @@ Profilde `kurulum_tamamlandi: false` ise ilk fırsatta `/kurulum` öner.
 **`analiz/siralama`** = `planla.py siralama --kaydet` çıktısı. Pano, öncelik
 sırasını ve son tarih kontrolünü buradan okur.
 
-**`ayarlar/profil`** = çalışma pencereleri, zirve saatleri, ders programı
-(`haftalik_sabitler`), kapasite, `takvim_yazma`, `baglam`. Alanların tam
+**`ayarlar/profil`** = çalışma pencereleri, zirve saatleri, kapasite,
+`takvim_yazma`, `baglam`, `oncelik_sirasi`.
+- `haftalik_sabitler` her hafta tekrarlayan blokları tutar:
+  - `tur: "ders"`: ders programı
+  - `tur: "takim"`: cumartesi atölye
+  - `tur: "rutin"`: öğrenme izi blokları (`iz`, `enerji` ve sınavda düşecekse
+    `sinavda: false`)
+- Rutin blokların süresi günlük görev kapasitesinden düşülür.
+- `sinav_donemleri: [{bas, bit}]` sınav haftası modunu açar.
+
+**`izler/<iz>`** (solidworks, yz, almanca, borsa, dersler) = öğrenme izinin
+ilerlemesi. Alanlar: `ad`, `oncelik`, `haftalik_hedef_dk`, `ozel_hedefler`,
+`varsayilan_oturum_dk`, `faz`, `sonraki`, `oturumlar[]`, `ilerleme`, `ozet`.
+Müfredat ve kaynaklar `planlayici/izler/<iz>.md` dosyalarındadır (yz için
+`yapay-zeka.md`).
+
+**`notlar/<ders>-<YYYYMMDD>`** = `/ders` çıktısı: ders notu özeti, formüller,
+sorular.
+
+**`borsa_gunlugu/<YYYY-MM-DD>`** = `/borsa` akşam planları ve işlem sonuçları. Alanların tam
 listesi `planlayici/planla.py` içindeki `VARSAYILAN_PROFIL`'de.
 
 ## Standart prosedürler

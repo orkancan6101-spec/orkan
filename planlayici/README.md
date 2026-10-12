@@ -32,9 +32,33 @@ Bu repoyla bir oturum aç ve yaz:
 | `/proje-plani` | Sınav, rapor, yarışma gibi büyük hedefleri geriye doğru planlar. |
 | `/takvim` | Takvime ekler, taşır ya da listeler. |
 | `/eposta-tara` | Gmail'den görev ve son tarih çıkarır. |
+| `/calis solidworks` (ya da `yz`, `almanca`, `borsa`) | O izdeki bugünkü oturumu hazırlar: kaynak linki, dakika dakika akış, alıştırma. Bitince AI özeti verir ve ilerlemeyi kaydeder. |
+| `/ders MEC.MAT` + not/fotoğraf | Ders notunu özetler; formüller, 5 test sorusu ve çözümlü örnek üretir; 1-3-7 gün tekrarlarını kurar. |
+| `/borsa` | Akşam 30 dakikalık BIST araştırma rutini ve işlem günlüğü. Hisse önerisi vermez. |
 
 Komut yazmak zorunda değilsin. "Cuma 17:00'ye kadar şasi raporunu bitirmem
 lazım" demen yeter; asistan doğru akışı seçer.
+
+## Öğrenme izleri ve haftalık iskelet
+
+Öncelik sırası: **1) dersler, Solar Team, SolidWorks → 2) yapay zekâ →
+3) Almanca → 4) borsa.** Zaman çakışırsa üstteki kazanır.
+
+| İz | Ne zaman | Haftalık hedef | Müfredat |
+|---|---|---|---|
+| Ders tekrarı | Ders günlerinin akşamı (Pzt, Sal 17:00 · Çar 16:30 · Cum 17:20) | 195 dk | [dersler.md](izler/dersler.md) |
+| SolidWorks | Pzt, Sal, Per 14:00 · Cum 20:00 (13–18 Ekim haftası: 7,5 saat) | 200 dk | [solidworks.md](izler/solidworks.md) |
+| Yapay zekâ | Sal 20:00 · Per 09:00 · Paz 15:00 | 150 dk | [yapay-zeka.md](izler/yapay-zeka.md) |
+| Almanca | Her gün 21:30 (Per 21:10) + ölü zamanlarda uygulama | 175 dk | [almanca.md](izler/almanca.md) |
+| Borsa | Paz–Per 23:00–23:30 | 150 dk | [borsa.md](izler/borsa.md) |
+
+- Panodaki **Öğrenme izleri** bölümünde her izin haftalık ilerlemesi
+  görünür. "+N dk çalıştım" ile telefondan kayıt girersin.
+- **Sınav haftası modu:** profilde `sinav_donemleri`'ne bir vize haftası
+  girildiğinde Almanca ve borsa blokları düşer, yapay zekâ haftada 1
+  oturuma iner. `/ders` ile vize tarihini verince bu mod kendiliğinden kurulur.
+- Almanca ve borsa "hafif" işler sayılır ve günlük 3,5 saatlik odak
+  kapasitesinden düşülmez. Diğer izler düşülür.
 
 ## Otomatik rutinler
 

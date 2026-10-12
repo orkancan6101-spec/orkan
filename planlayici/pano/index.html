@@ -124,6 +124,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .akis { margin: 0; padding: 0; list-style: none; display: grid; border-top: 1px solid var(--cizgi); }
 .akis li { display: grid; grid-template-columns: 6.6rem minmax(0, 1fr); gap: 10px; padding: 8px 0 8px 10px; border-bottom: 1px solid var(--cizgi); border-left: 3px solid transparent; }
 .akis li.sabit { color: var(--soluk); }
+.akis li.rutin { border-left: 3px dashed var(--vurgu); }
 .akis li.odak { border-left-color: var(--odak); }
 .akis li.simdi { background: var(--vurgu-zemin); }
 .akis li.gecti { opacity: 0.55; }
@@ -194,6 +195,12 @@ textarea { resize: vertical; min-height: 4.5rem; }
 .st.yetismez { border-left-color: var(--kritik); background: var(--kritik-zemin); }
 .st .baslik { font-weight: 600; overflow-wrap: anywhere; }
 .st .olcu { grid-column: 1 / -1; font-size: 0.85rem; color: var(--soluk); }
+.iz { border: 1px solid var(--cizgi); border-radius: var(--r); padding: 10px 12px; display: grid; gap: 6px; min-width: 0; }
+.iz .ust { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.iz .ad { font-weight: 600; }
+.iz .faz, .iz .sonraki { font-size: 0.88rem; color: var(--soluk); overflow-wrap: anywhere; margin: 0; }
+.iz .sonraki strong { color: var(--murekkep); font-weight: 600; }
+.iz .dugmeler .dugme { padding: 4px 10px; font-size: 0.88rem; }
 .biten li { display: flex; justify-content: space-between; gap: 10px; font-size: 0.93rem; padding: 4px 0; border-bottom: 1px solid var(--cizgi); }
 .biten li span:first-child { min-width: 0; overflow-wrap: anywhere; }
 
@@ -229,6 +236,11 @@ footer a { color: var(--vurgu); }
         </div>
       </section>
 
+      <section class="bolum" id="izler" aria-labelledby="iz-b">
+        <div class="bolum-bas"><h2 id="iz-b">Öğrenme izleri</h2><span class="ufak">bu hafta</span></div>
+        <ul class="liste" id="iz-liste"></ul>
+      </section>
+
       <section class="bolum" id="ekle" aria-labelledby="ekle-b">
         <div class="bolum-bas"><h2 id="ekle-b">Hızlı ekle</h2></div>
         <p class="ipucu">Aklına geleni hemen yaz, sonra düşün. Görev gelen kutusuna düşer. Claude analiz edip sorularını sorar.</p>
@@ -247,6 +259,9 @@ footer a { color: var(--vurgu); }
               <select id="e-alan">
                 <option value="okul">Okul</option>
                 <option value="solar">Solar Team</option>
+                <option value="yz">Yapay zekâ</option>
+                <option value="almanca">Almanca</option>
+                <option value="borsa">Borsa</option>
                 <option value="kisisel">Kişisel</option>
                 <option value="saglik">Sağlık</option>
                 <option value="kariyer">Kariyer</option>
@@ -307,7 +322,7 @@ footer a { color: var(--vurgu); }
 (() => {
   "use strict";
   const TZ = "Europe/Istanbul";
-  const ALAN_ADI = { okul: "Okul", solar: "Solar Team", kisisel: "Kişisel", saglik: "Sağlık", kariyer: "Kariyer", diger: "Diğer" };
+  const ALAN_ADI = { okul: "Okul", solar: "Solar Team", yz: "Yapay zekâ", almanca: "Almanca", borsa: "Borsa", kisisel: "Kişisel", saglik: "Sağlık", kariyer: "Kariyer", diger: "Diğer" };
   const KADRAN = {
     1: ["Hemen yap", "önemli · acil"],
     2: ["Planla, koru", "önemli · acil değil"],
@@ -317,7 +332,7 @@ footer a { color: var(--vurgu); }
   const $ = (id) => document.getElementById(id);
 
   const durum = {
-    db: null, yazabilir: true, gorevler: new Map(), plan: null, profil: null, siralama: null,
+    db: null, yazabilir: true, gorevler: new Map(), plan: null, profil: null, siralama: null, izler: new Map(),
     kadranFiltre: null, alanFiltre: null,
     acik: new Set(), taslak: new Map(), mesgul: new Set(), aiBekleyen: new Map(), aiHata: new Map(),
     bitirAcik: new Set(), iptalAcik: new Set(), bekleyenCizim: new Set(),
@@ -449,7 +464,7 @@ footer a { color: var(--vurgu); }
         const s = dk(b.bas), bit = dk(b.bit);
         const g = b.gorev_id ? durum.gorevler.get(b.gorev_id) : null;
         const bitti = g && g.durum === "tamamlandi";
-        let sinif = b.tur === "sabit" ? "sabit" : "odak";
+        let sinif = b.tur === "odak" ? "odak" : b.tur === "rutin" ? "rutin" : "sabit";
         if (bit <= simdi || bitti) sinif += " gecti";
         else if (s <= simdi && simdi < bit) sinif += " simdi";
         akis.append(el("li", { class: sinif },
@@ -726,6 +741,58 @@ footer a { color: var(--vurgu); }
       : [el("li", {}, el("p", { class: "bos", text: "Son tarihli iş yok ya da henüz hesaplanmadı. Asistan her planlamada bu listeyi günceller." }))]));
   }
 
+  function haftaBasiISO() {
+    const [y, m, d] = bugunISO().split("-").map(Number);
+    const t = new Date(Date.UTC(y, m - 1, d));
+    t.setUTCDate(t.getUTCDate() - ((t.getUTCDay() + 6) % 7));
+    return t.toISOString().slice(0, 10);
+  }
+
+  function izHedefi(iz) {
+    const bugun = bugunISO();
+    const ozel = (Array.isArray(iz.ozel_hedefler) ? iz.ozel_hedefler : []).find((o) => o.bas <= bugun && bugun <= o.bit);
+    return ozel ? Number(ozel.hedef_dk) || 0 : Number(iz.haftalik_hedef_dk) || 0;
+  }
+
+  async function izKaydet(iz, dakika) {
+    if (!durum.db || durum.mesgul.has("iz:" + iz.id)) return;
+    durum.mesgul.add("iz:" + iz.id); hepsiniCiz();
+    try {
+      const eski = Array.isArray(iz.oturumlar) ? iz.oturumlar : [];
+      const oturumlar = [...eski.slice(-59), { tarih: bugunISO(), dk: dakika, kaynak: "pano" }];
+      await durum.db.doc("izler/" + iz.id).update({ oturumlar, guncelleme: simdiISO() });
+    } catch (e) {
+      bant("Oturum kaydedilemedi. Bağlantını kontrol edip tekrar dene.");
+    } finally {
+      durum.mesgul.delete("iz:" + iz.id); hepsiniCiz();
+    }
+  }
+
+  function izleriCiz() {
+    const kap = $("iz-liste");
+    const pzt = haftaBasiISO();
+    const izler = [...durum.izler.values()].sort((a, b) => (a.oncelik || 9) - (b.oncelik || 9));
+    kap.replaceChildren(...(izler.length ? izler.map((iz) => {
+      const yapilan = (Array.isArray(iz.oturumlar) ? iz.oturumlar : []).filter((o) => String(o.tarih) >= pzt)
+        .reduce((t, o) => t + (Number(o.dk) || 0), 0);
+      const hedef = izHedefi(iz);
+      const oran = hedef ? Math.min(1, yapilan / hedef) : 0;
+      const mesgul = durum.mesgul.has("iz:" + iz.id);
+      const oturum = Number(iz.varsayilan_oturum_dk) || 25;
+      return el("li", { class: "iz" },
+        el("div", { class: "ust" },
+          el("span", {}, el("span", { class: "cip", text: `Ö${iz.oncelik || "-"}` }), " ", el("span", { class: "ad", text: iz.ad || iz.id })),
+          el("span", { class: "veri ufak", text: `${sureYazi(yapilan) || "0 dk"} / ${sureYazi(hedef)}` })),
+        el("div", { class: "olcek-cubuk", role: "img", "aria-label": `Haftalık hedefin yüzde ${Math.round(oran * 100)}'i` },
+          el("div", { class: "olcek-dolu", style: `width:${Math.round(oran * 100)}%` })),
+        iz.faz ? el("p", { class: "faz", text: iz.faz }) : null,
+        iz.sonraki ? el("p", { class: "sonraki" }, el("strong", { text: "Sıradaki: " }), iz.sonraki) : null,
+        durum.yazabilir ? el("div", { class: "dugmeler" },
+          el("button", { class: "dugme ikincil", type: "button", disabled: mesgul, onclick: () => izKaydet(iz, oturum) }, `+${oturum} dk çalıştım`),
+          oturum !== 10 ? el("button", { class: "dugme ikincil", type: "button", disabled: mesgul, onclick: () => izKaydet(iz, 10) }, "+10 dk") : null) : null);
+    }) : [el("li", {}, el("p", { class: "bos", text: "Öğrenme izleri kurulunca burada haftalık ilerlemen görünecek." }))]));
+  }
+
   function digerleriniCiz() {
     const bek = [...durum.gorevler.values()].filter((g) => g.durum === "bekliyor");
     $("bek-liste").replaceChildren(...(bek.length ? bek.map((g) => el("li", { class: "gorev" },
@@ -758,6 +825,7 @@ footer a { color: var(--vurgu); }
     gelenCiz();
     oncelikleriCiz();
     sonTarihleriCiz();
+    izleriCiz();
     digerleriniCiz();
     document.querySelectorAll("#ekle-form input, #ekle-form textarea, #ekle-form select, #ekle-form button").forEach((x) => { x.disabled = !durum.db || !durum.yazabilir; });
   }
@@ -817,6 +885,10 @@ footer a { color: var(--vurgu); }
       hepsiniCiz();
     }, () => bant("Görevler okunamadı. Sayfayı yenile."));
     db.doc("ayarlar/profil").onSnapshot((s) => { durum.profil = s.exists ? s.data() : null; }, () => {});
+    db.collection("izler").onSnapshot((snap) => {
+      durum.izler = new Map(snap.docs.map((d) => [d.id, { ...d.data(), id: d.id }]));
+      hepsiniCiz();
+    }, () => {});
     db.doc("analiz/siralama").onSnapshot((s) => { durum.siralama = s.exists ? s.data() : null; hepsiniCiz(); }, () => {});
     plana_abone_ol();
     setInterval(() => { if (bugunISO() !== gunu) { gunu = bugunISO(); plana_abone_ol(); } }, 60000);
