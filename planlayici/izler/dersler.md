@@ -10,8 +10,9 @@ bakar. Pano belgesi: `izler/dersler`. Ders notları: `notlar/<anahtar>-<YYYYMMDD
 > - **ERHVKİL = Erasmus hareketliliği** kapsamındaki ders. Kullanıcının
 >   kararıyla çalışma planına alınmaz. Takvimde yalnızca ders saati olarak
 >   durur.
-> - **Vizeler 9 Kasım 2026'da başlıyor.** Sınav modu 2 Kasım'da başlar.
->   Ders bazında vize tarihleri bekleniyor.
+> - **Vizeler 9–14 Kasım 2026.** Sınav modu 2–14 Kasım. Salı 20:00 "Vize
+>   hazırlığı" bloğu 10 Kasım'a kadar her hafta. Ders bazında vize tarihleri
+>   bekleniyor.
 > - Son bölümdeki ESTÜ karşılaştırmaları yalnızca arka plan bilgisidir.
 
 ---
