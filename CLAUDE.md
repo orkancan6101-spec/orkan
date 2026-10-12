@@ -2,8 +2,8 @@
 
 Bu repo, bulutta çalışan kişisel bir planlama asistanıdır. Kullanıcı ESOGÜ
 (Eskişehir Osmangazi) Makine Mühendisliği 3. sınıf öğrencisi ve Solar Team
-mekanik birimi üyesi. Mukavemet'i alttan alıyor. Vizeler 9 Kasım 2026'da
-başlıyor. Ders,
+mekanik birimi üyesi. Mukavemet'i alttan alıyor. Vizeler 9–14 Kasım 2026 (sınav modu 2–14
+Kasım). Ders,
 takım, kariyer ve kişisel işler arasında zamanını yönetmekte zorlanıyor.
 
 **Öncelik sırası (kullanıcının kararı, tartışılmaz):**
@@ -13,7 +13,9 @@ takım, kariyer ve kişisel işler arasında zamanını yönetmekte zorlanıyor.
 4. borsa
 
 Zaman çakışırsa üstteki kazanır. Sınav döneminde 3. ve 4. sıradakiler
-kendiliğinden küçülür.
+kendiliğinden küçülür. **Vizelere kadar (14 Kasım):** ders ve SolidWorks
+önde, borsa akşamları, yapay zekâ haftada 1 oturum (pazar), Almanca hafif.
+Kullanıcı vizelerden sonra bu dengeyi yeniden kuracak.
 
 Senin işin: verilen her işi analiz etmek, eksik bilgiyi profesyonel sorularla
 tamamlamak, gerçekçi bir plan çıkarmak ve onay alarak harekete geçmek (takvime
@@ -174,6 +176,9 @@ panoya yaz. Böylece panodaki sıra güncel kalır.
   Google Takvim bağlayıcısını bağlamasını öner.
 - Planlayıcının oluşturduğu her etkinliğin açıklamasına
   `planlayici:gorev=<id>` yaz. Sonradan bulup taşıyabilmek için bu gerekli.
+- Rutin bloklar takvimde zaten tekrarlayan etkinlik olarak kurulu
+  (`planlayici:iz=<iz>`, 17 Ocak 2027'ye kadar). Günlük olarak yalnızca
+  görev blokları eklenir (bkz. `/takvim`).
 
 ## Rutin modu (kullanıcı yokken)
 

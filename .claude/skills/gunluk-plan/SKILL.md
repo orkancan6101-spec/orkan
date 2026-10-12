@@ -65,8 +65,10 @@ bir bildirim özeti üret.
 
 8. **Panoya yaz.** `planlar/<T>` belgesini kaydet (P3).
 
-9. **Takvim.** Etkileşimli modda odak bloklarını takvime eklemeyi öner
-   (`/takvim`). Rutin modunda yalnızca `takvim_yazma: "otomatik"` ise ekle.
+9. **Takvim.** Yalnızca `tur: "odak"` (görev) bloklarını ekle. Rutin
+   bloklar takvimde zaten tekrarlayan etkinlik olarak var. Etkileşimli
+   modda eklemeyi öner (`/takvim`). Rutin modunda yalnızca
+   `takvim_yazma: "otomatik"` ise ekle.
    Aynı gün için önceden eklenmiş `planlayici:` blokları varsa yenilerini
    ekleme. Önce eskileri güncelle ya da taşı; silmen gerekiyorsa onay iste.
 

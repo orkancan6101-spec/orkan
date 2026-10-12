@@ -114,8 +114,9 @@ montaj ve teknik resim çıkarabilmek. Ölçülebilir kanıt olarak **CSWA
 
 ## Bu hafta: yoğun plan (13–18 Ekim)
 
-9 blok × 50 dk = 450 dk (7,5 sa). Saatler ders programına ve cumartesi
-atölyesine göre yerleştirildi. Günlük plan saatleri kaydırabilir, ama
+Bu haftaya 7 blok sığdı (≈6 sa: 3 rutin + 4 ek blok); F0.8 ve F0.9 gelecek haftanın
+rutin bloklarına kaydı, çünkü vizeler nedeniyle ders blokları artırıldı. Saatler Google
+Takvim'deki etkinliklerle aynıdır. Günlük plan saatleri kaydırabilir, ama
 **sıra değişmemeli.** Her bloğun sonunda bir dosya kaydedilir. Dosya düzeni için
 "Riskler ve tavsiyeler" bölümüne bak.
 
@@ -125,11 +126,11 @@ atölyesine göre yerleştirildi. Günlük plan saatleri kaydırabilir, ama
 | | 15:00–15:50 | F0.2 | **Sketch disiplini drill'i.** 5 sketch: origin'e bağlı dikdörtgen, simetrik yuva, eşit 4 delik, yapı çizgisiyle açılı kol, teğet yay. Kurallar: **Fix ilişkisi yok, Fully Define aracı yok**, hepsi elle tam tanımlanacak. | `F0-02_sketch-drill.SLDPRT` (5 siyah sketch) |
 | **Çar 14 Eki** | 08:00–08:50 | F0.3 | **L-braket** (5 mm Al): extrude, cut, Hole Wizard (M6), fillet, mirror. Delikler kenarlara göre simetrik. **Değiştir testi:** genişliği 60'tan 80'e çıkar. Delikler doğru kayıyor mu? | `F0-03_l-braket.SLDPRT` + kütle (g) |
 | **Per 15 Eki** | 14:00–14:50 | F0.4 | **Tekerlek göbeği / aks burcu:** revolve, chamfer, 4 cıvata deliği circular pattern. Malzeme 6061 Al. Kütle özelliklerini oku ve kaydet. | `F0-04_gobek.SLDPRT` + kütle |
-| | 15:00–15:50 | F0.5 | **Takım oynatma listesinin ilk videosu** (link geldiyse): izle, durdur, aynısını çiz, bir parametreyi değiştir. Link yoksa MySolidWorks *Part Modeling Basics* yolunun ilk dersini yap. | Videodaki parça ya da ders parçası |
-| **Cum 16 Eki** | 08:00–08:50 | F0.6 | **Mini montaj:** göbek, aks ve 2 rulman (basit halka). Mate'ler: concentric, coincident, distance. Interference Detection çalıştır. İstersen yerleşik *Lesson 2 – Assemblies* (~45 dk) yerine geçebilir. | `F0-06_aks-montaj.SLDASM` + çakışma ekran görüntüsü |
-| **Cmt 17 Eki** | 08:30–09:20 (atölyeden önce) | F0.7 | **Teknik resim:** yerleşik *Lesson 3 – Drawings* (~15 dk). Sonra L-braketin resmi: 3 görünüş, 1 kesit, 1 detay, ölçüler, antette "ISO 2768-mK" notu. PDF'e aktar. | `F0-07_l-braket.SLDDRW` + PDF |
-| **Paz 18 Eki** | 10:00–10:50 | F0.8 | **Başlangıç ölçümü:** CSWA örnek sınavından 2 temel parça sorusu, süre tutarak. Cevap kütle olarak girilir. Sonra çözüm videosuyla karşılaştır. | `ilerleme.cswa_baslangic` = {doğru/2, dk} |
-| | 16:00–16:50 | F0.9 | **Gözden geçirme:** hataları kodla (AI kuralları bölümü). L-braketi bakmadan 15 dakikada yeniden çiz. TooTallToby'de ücretsiz hesap aç ve 1 ücretsiz model dene. F1 planını onayla. | Hata listesi, `sonraki = F1.1` |
+| **Cum 16 Eki** | 08:00–08:50 | F0.5 | **Takım oynatma listesinin ilk videosu** (link geldiyse): izle, durdur, aynısını çiz, bir parametreyi değiştir. Link yoksa MySolidWorks *Part Modeling Basics* yolunun ilk dersini yap. | Videodaki parça ya da ders parçası |
+| **Cmt 17 Eki** | 08:30–09:20 (atölyeden önce) | F0.6 | **Mini montaj:** göbek, aks ve 2 rulman (basit halka). Mate'ler: concentric, coincident, distance. Interference Detection çalıştır. İstersen yerleşik *Lesson 2 – Assemblies* (~45 dk) yerine geçebilir. | `F0-06_aks-montaj.SLDASM` + çakışma ekran görüntüsü |
+| **Paz 18 Eki** | 16:00–16:50 | F0.7 | **Teknik resim:** yerleşik *Lesson 3 – Drawings* (~15 dk). Sonra L-braketin resmi: 3 görünüş, 1 kesit, 1 detay, ölçüler, antette "ISO 2768-mK" notu. PDF'e aktar. | `F0-07_l-braket.SLDDRW` + PDF |
+| **Pzt 19 Eki** | 14:00–14:50 | F0.8 | **Başlangıç ölçümü:** CSWA örnek sınavından 2 temel parça sorusu, süre tutarak. Cevap kütle olarak girilir. Sonra çözüm videosuyla karşılaştır. | `ilerleme.cswa_baslangic` = {doğru/2, dk} |
+| **Per 22 Eki** | 14:00–14:50 | F0.9 | **Gözden geçirme:** hataları kodla (AI kuralları bölümü). L-braketi bakmadan 15 dakikada yeniden çiz. TooTallToby'de ücretsiz hesap aç ve 1 ücretsiz model dene. F1 planını onayla. | Hata listesi, `sonraki = F1.1` |
 
 Bu haftanın kaynakları:
 - Yerleşik eğitimler: [Getting Started (Help)](https://help.solidworks.com/2025/English/swconntutorial/c_swtut_getting_started_online.htm).
