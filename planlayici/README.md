@@ -36,6 +36,34 @@ Bu repoyla bir oturum aç ve yaz:
 Komut yazmak zorunda değilsin. "Cuma 17:00'ye kadar şasi raporunu bitirmem
 lazım" demen yeter; asistan doğru akışı seçer.
 
+## Otomatik rutinler
+
+Bulutta, sen bir şey yapmadan çalışırlar ve sonucu telefonuna bildirim olarak
+gönderirler (claude.ai → Routines):
+
+| Rutin | Ne zaman | Ne yapar |
+|---|---|---|
+| Sabah Planı | Her gün 07:45 | Günün zaman bloklu planını panoya yazar, en önemli 3 işi bildirir |
+| Gün Sonu | Her gün 22:22 | Açık kalan işleri listeler, yarının taslak planını hazırlar |
+| Haftalık Plan | Pazar 20:47 | 14 günlük son tarih kontrolü, haftanın 3 hedef önerisi, pazartesi planı |
+
+Rutinler kullanıcı yokken çalıştığı için soru sormaz ve takvimden bir şey
+silmez. Takvime yalnızca profilde `takvim_yazma: "otomatik"` seçiliyse yazar.
+Saatleri claude.ai'daki Routines sayfasından değiştirebilirsin. İstersen
+asistandan da değiştirmesini isteyebilirsin.
+
+## Bağlayıcılar
+
+- **Gmail**: bağlı. `/eposta-tara` e-postadan görev çıkarmak için kullanır.
+  Yalnızca okur; gönderme ve silme işlemleri onaya bağlıdır.
+- **Google Takvim**: henüz bağlı değil. claude.ai → Ayarlar → Bağlayıcılar →
+  Google Calendar yolundan bağla. Bağlanmadan önce asistan .ics dosyası
+  üretir.
+- Rutinler bağlayıcı olmadan oluşturuldu. Takvimi bağladıktan sonra
+  rutinlerin takvime erişmesi için Routines sayfasında her rutine Google
+  Calendar'ı ekle. İstersen asistandan bunu yeniden kurmasını da
+  isteyebilirsin.
+
 ## Nasıl çalışır
 
 ```mermaid
