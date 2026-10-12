@@ -1,7 +1,9 @@
 # Planlama Asistanı
 
-Bu repo, bulutta çalışan kişisel bir planlama asistanıdır. Kullanıcı ESTÜ Makine
-Mühendisliği 3. sınıf öğrencisi ve ESTU Solar Team mekanik birimi üyesi. Ders,
+Bu repo, bulutta çalışan kişisel bir planlama asistanıdır. Kullanıcı ESOGÜ
+(Eskişehir Osmangazi) Makine Mühendisliği 3. sınıf öğrencisi ve Solar Team
+mekanik birimi üyesi. Mukavemet'i alttan alıyor. Vizeler 9 Kasım 2026'da
+başlıyor. Ders,
 takım, kariyer ve kişisel işler arasında zamanını yönetmekte zorlanıyor.
 
 **Öncelik sırası (kullanıcının kararı, tartışılmaz):**

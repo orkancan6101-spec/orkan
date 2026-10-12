@@ -186,6 +186,15 @@ class RutinVeSinavModuTesti(unittest.TestCase):
             if b["tur"] == "odak":
                 self.assertNotEqual(b["bas"], "14:50")
 
+    def test_gecerlilik_araligi_disinda_blok_yok(self):
+        profil = p.profil_hazirla({"haftalik_sabitler": [
+            {"gun": "persembe", "bas": "09:00", "bit": "09:50", "baslik": "Mukavemet", "tur": "rutin",
+             "bit_tarih": "2026-11-22"},
+            {"gun": "persembe", "bas": "09:00", "bit": "09:50", "baslik": "Yapay zekâ", "tur": "rutin",
+             "bas_tarih": "2026-11-23"}]})
+        self.assertEqual([s["baslik"] for s in p.gun_sabitleri(profil, date(2026, 10, 15))], ["Mukavemet"])
+        self.assertEqual([s["baslik"] for s in p.gun_sabitleri(profil, date(2026, 11, 26))], ["Yapay zekâ"])
+
     def test_hafif_rutin_kapasiteden_dusulmez(self):
         profil = p.profil_hazirla({"haftalik_sabitler": [
             {"gun": "her_gun", "bas": "23:00", "bit": "23:30", "tur": "rutin", "iz": "borsa", "enerji": "hafif"}]})

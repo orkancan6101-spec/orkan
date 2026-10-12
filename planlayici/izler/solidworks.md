@@ -371,7 +371,7 @@ dersi, CSWPA Sheet Metal hazırlık yolunun içinde.
 
 | # | Liste adı | Link | Konu | Eşleştiği faz | Video sayısı / süre | İlerleme |
 |---|---|---|---|---|---|---|
-| T1 | _(bekleniyor)_ | _(bekleniyor)_ | | | | 0 / ? |
+| T1 | Takım SolidWorks oynatma listesi | [YouTube](https://www.youtube.com/playlist?list=PLs4Go4d50-VtOwwfHSLEIXvI-W96J9-9v) | Takım içi eğitim (içerik bu ortamdan görülemedi; ilk oturumda video başlıkları buraya işlenecek) | F0.5'ten itibaren her SolidWorks oturumunun ikinci yarısı | ? | 0 / ? |
 | T2 | _(bekleniyor)_ | _(bekleniyor)_ | | | | 0 / ? |
 | T3 | _(bekleniyor)_ | _(bekleniyor)_ | | | | 0 / ? |
 

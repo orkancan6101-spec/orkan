@@ -47,7 +47,8 @@ VARSAYILAN_PROFIL = {
     "gunluk_max_is_dk": {"hafta_ici": 300, "hafta_sonu": 240},
     "zirve_saatleri": [["09:00", "12:30"]],
     # Her hafta tekrarlayan bloklar: {"gun": "pazartesi" | ["sali", "persembe"] | "hafta_ici" | "her_gun",
-    #  "bas", "bit", "baslik", "tur": "ders" | "takim" | "rutin", "iz", "enerji", "sinavda": bool}
+    #  "bas", "bit", "baslik", "tur": "ders" | "takim" | "rutin", "iz", "enerji", "sinavda": bool,
+    #  "bas_tarih"/"bit_tarih": geçici bloklar için geçerlilik aralığı}
     # tur=rutin olanlar (SolidWorks, Almanca gibi öğrenme izleri) günlük odak kapasitesinden düşülür.
     "haftalik_sabitler": [],
     # Sınav dönemleri: [{"bas": "YYYY-MM-DD", "bit": "YYYY-MM-DD"}]; bu günlerde sinavda=false rutinler düşer
@@ -283,6 +284,14 @@ def gun_sabitleri(profil: dict, gun: date) -> list[dict]:
             continue
         if sinavda and s.get("sinavda") is False:
             continue
+        # İsteğe bağlı geçerlilik aralığı: bas_tarih / bit_tarih (YYYY-MM-DD, ikisi de dahil)
+        try:
+            if s.get("bas_tarih") and gun < date.fromisoformat(s["bas_tarih"]):
+                continue
+            if s.get("bit_tarih") and gun > date.fromisoformat(s["bit_tarih"]):
+                continue
+        except ValueError:
+            pass
         sonuc.append(s)
     return sonuc
 

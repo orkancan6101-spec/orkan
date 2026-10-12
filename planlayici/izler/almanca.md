@@ -12,6 +12,8 @@
 
 ---
 
+> **Kullanıcı kararı (13 Ekim 2026):** **Senaryo A** seçildi. Mevcut tempoyla yaz 2027'de A2 hedeflenir, B1 2028'e kalır. Sınav dönemlerinde (2–22 Kasım) yalnızca ölü zamanlarda uygulama çalışılır.
+
 ## Hedef ve ölçüt
 
 **Uzun vadeli hedef:** Goethe-Zertifikat B1 (sonra B2). Alternatifler: ÖSD Zertifikat B1

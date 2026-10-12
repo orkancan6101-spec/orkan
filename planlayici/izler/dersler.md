@@ -3,13 +3,16 @@
 Bu dosya "Dersler" izinin müfredatıdır. `/ders` ve `/calis dersler` önce buraya
 bakar. Pano belgesi: `izler/dersler`. Ders notları: `notlar/<anahtar>-<YYYYMMDD>`.
 
-> **Önce oku: üniversite uyuşmazlığı.** Ders programındaki kodlar (`[15181]`,
-> `[80111]`) ve ders süreleri **Eskişehir Osmangazi Üniversitesi (ESOGÜ) Makina
-> Mühendisliği** kataloğuyla birebir örtüşüyor. Profilde ve takım rehberinde
-> ise **ESTÜ** yazıyor. ESTÜ'de ders kodları harflidir (ör. MKM302) ve ders
-> adları ile süreleri bu programla uyuşmuyor. Aşağıdaki ders bilgileri ESOGÜ
-> kataloğuna göre yazıldı. Kullanıcı teyit edene kadar "muhtemel" kabul et
-> (bkz. son bölüm).
+> **Teyit edildi (13 Ekim 2026):** Kullanıcı **ESOGÜ Makine Mühendisliği**
+> öğrencisi. Aşağıdaki ESOGÜ katalog eşleştirmeleri geçerlidir.
+> - **MEC.MAT = Mukavemet.** Alttan alınıyor ve dönemin en yüksek öncelikli
+>   dersi.
+> - **ERHVKİL = Erasmus hareketliliği** kapsamındaki ders. Kullanıcının
+>   kararıyla çalışma planına alınmaz. Takvimde yalnızca ders saati olarak
+>   durur.
+> - **Vizeler 9 Kasım 2026'da başlıyor.** Sınav modu 2 Kasım'da başlar.
+>   Ders bazında vize tarihleri bekleniyor.
+> - Son bölümdeki ESTÜ karşılaştırmaları yalnızca arka plan bilgisidir.
 
 ---
 

@@ -11,6 +11,8 @@ amaç değil. Her fazın sonunda **çalışan bir şey** olmalı.
 
 ---
 
+> **Kullanıcı kararı (13 Ekim 2026):** Mobil uygulama **React Native** ile yazılıyor. F0'daki teknoloji kararı buna göre verildi; Expo, React Native üzerine kurulduğu için önerilen araç seti olarak kalır. Vizelere kadar (22 Kasım) haftada 2 oturum yapılır; perşembe 09:00 bloğu derse verildi.
+
 ## Hedef ve ölçüt
 
 **12 aylık hedef (Ekim 2027):** Claude Code'u skill, hook, subagent, MCP ve rutinlerle
