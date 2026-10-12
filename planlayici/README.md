@@ -80,13 +80,12 @@ asistandan da değiştirmesini isteyebilirsin.
 
 - **Gmail**: bağlı. `/eposta-tara` e-postadan görev çıkarmak için kullanır.
   Yalnızca okur; gönderme ve silme işlemleri onaya bağlıdır.
-- **Google Takvim**: henüz bağlı değil. claude.ai → Ayarlar → Bağlayıcılar →
-  Google Calendar yolundan bağla. Bağlanmadan önce asistan .ics dosyası
-  üretir.
-- Rutinler bağlayıcı olmadan oluşturuldu. Takvimi bağladıktan sonra
-  rutinlerin takvime erişmesi için Routines sayfasında her rutine Google
-  Calendar'ı ekle. İstersen asistandan bunu yeniden kurmasını da
-  isteyebilirsin.
+- **Google Takvim**: bağlı. Dersler ve rutin bloklar tekrarlayan etkinlik
+  olarak kurulu; asistan günlük olarak yalnızca görev bloklarını ekler.
+  Bağlantı koparsa asistan .ics dosyası üretir.
+- **Rutinler**: Sabah Planı, Gün Sonu ve Haftalık Plan rutinlerinin üçünde
+  de Gmail ve Google Calendar ekli. Asistan rutinlere bağlayıcı ekleyemez;
+  yeni bir rutin kurulursa bağlayıcıları Routines sayfasından sen eklersin.
 
 ## Nasıl çalışır
 
