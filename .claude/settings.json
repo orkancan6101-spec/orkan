@@ -1,0 +1,35 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          { "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/oturum_basi.py\"" }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          { "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/zaman.py\"" }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "mcp__.*[Cc]alendar.*__delete_event|mcp__.*[Gg]mail.*__(send_message|forward|trash_message|trash_thread|delete_draft)",
+        "hooks": [
+          { "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/koruma.py\"" }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(python3 planlayici/planla.py:*)",
+      "Bash(python3 -m unittest planlayici/test_planla.py:*)",
+      "Bash(rm -rf planlayici/.veri)",
+      "Bash(mkdir -p planlayici/.veri)"
+    ]
+  }
+}
