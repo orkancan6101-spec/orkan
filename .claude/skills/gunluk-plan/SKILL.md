@@ -51,6 +51,9 @@ bir bildirim özeti üret.
 6. **Rutin blokların içeriği.** Plandaki her `tur: "rutin"` bloğu için
    `izler/<iz>` belgesinin `sonraki` alanından tek satırlık somut içerik
    yaz. Örnek: "21:30 Almanca: Nicos Weg A1 Bölüm 5 + 10 kelime".
+   - "Ders tekrarı" bloğuna `izler/dersler.tekrar_kuyrugu` içinde tarihi
+     bugün ya da geçmiş olan tekrarları ekle. Örnek: "17:00 Tekrar:
+     MEC.MAT gerilme dönüşümü (2/3) + bugünkü MÜHTER II notu".
    - Bu haftanın hedefinin gerisinde kalan izi yorumda belirt.
    - Sınav dönemindeysen (`plan.sinav_modu`) bunu en üstte söyle.
 

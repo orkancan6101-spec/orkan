@@ -38,13 +38,16 @@ Ders kodları:
    Alanlar: `ders`, `tarih`, `konu`, `ozet`, `formuller`, `sorular`,
    `cevaplar`, `kaynaklar`. Bir belge 256 KB'ı geçmesin; uzun notu
    konulara böl.
-4. **Aralıklı tekrar görevleri:** dersten 1, 3 ve 7 gün sonrası için 15'er
-   dakikalık görev oluştur. Alanlar:
-   - `alan: "okul"`, `enerji: "orta"`, `onem: 4`
-   - `son_tarih`: ilgili gün
-   - `baslik: "Tekrar: <ders> – <konu> (1/3)"`
-   - `sonraki_adim: "5 soruyu kağıt kapalı çöz"`
-   Ardından `siralama`'yı güncelle (CLAUDE.md P2–P3).
+4. **Aralıklı tekrar kuyruğu.** Ayrı görev açma; böylece kapasite
+   şişmez. `izler/dersler` belgesindeki `tekrar_kuyrugu` listesine 1, 3 ve
+   7 gün sonrası için kayıt ekle:
+   `{tarih: "YYYY-MM-DD", ders, konu, not_id, sira: "1/3"}`.
+   - Bu tekrarlar o günün akşam "Ders tekrarı" bloğunun ilk 10–15
+     dakikasında yapılır: 5 soruyu kağıt kapalı çöz, kontrol et.
+   - Aynı güne düşen tekrarlar tek listede birleşir.
+   - Ders tekrarı bloğu olmayan bir güne (Per, Cmt, Paz) düşen tekrar bir
+     sonraki bloğa kayar.
+   - Yapılan tekrarı kuyruktan sil ve `oturumlar`'a ekle.
 
 ## B) Konu çalışma ("mukavemet çalışacağım")
 1. `dersler.md`'den konunun yerini ve sıradaki konuyu bul. Panodaki
