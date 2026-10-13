@@ -204,3 +204,8 @@ yeniden yayımla (Artifact, url=PANO).
 `solar-team/` klasöründe takım için hazırlanmış mekanik mühendis rehberi ve
 öğrenme yol haritası var. Kullanıcı takımla ilgili bir hedef verdiğinde
 (örneğin ANSYS öğrenmek) oradaki sıralamayı ve önerileri dikkate al.
+
+`kulup/` klasöründe ESOGÜ Otomotiv Kulübü'nün yönetim paneli var (kaynak
+`kulup/index.html`, adres `kulup/ayarlar.json` → `panel_url`). Departman
+tabloları, görevler, belgeler ve ekip müsaitliği panelin kendi veritabanında
+durur; Plan Panosu'ndan ayrıdır. Ayrıntılar `kulup/README.md`'de.

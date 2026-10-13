@@ -1,3 +1,6 @@
 # Plan Panosu'ndan her oturumda yeniden indirilen geçici veri
 planlayici/.veri/
 __pycache__/
+
+# Kulüp paneli tohum çıktısı
+kulup/.tohum/
