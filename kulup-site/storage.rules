@@ -1,0 +1,31 @@
+rules_version = '2';
+
+// ESOGÜ Otomotiv Kulübü sitesi · Firebase Storage kuralları
+// Okuma: herkes (site herkese açık). Yükleme ve silme: yalnızca site sahibi
+// ve Firestore'daki ayarlar/yetkililer listesindeki e-postalar.
+// Tür ve boyut sınırı yoktur.
+// Kurulumda SAHIBIN_GMAIL_ADRESI yerine site sahibinin Gmail adresini yazın.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function girisli() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function sahip() {
+      return girisli() && request.auth.token.email.lower() == 'SAHIBIN_GMAIL_ADRESI';
+    }
+    function yetkili() {
+      return sahip() || (
+        girisli()
+        && firestore.exists(/databases/(default)/documents/ayarlar/yetkililer)
+        && request.auth.token.email.lower() in firestore.get(/databases/(default)/documents/ayarlar/yetkililer).data.emails
+      );
+    }
+
+    match /{dosya=**} {
+      allow read: if true;
+      allow write: if yetkili();
+    }
+  }
+}

@@ -68,9 +68,29 @@ Firebase konsolu → **Authentication → Ayarlar → Yetkili alan adları → A
 3. Düzenleyebilecek kişilerin Gmail adreslerini ekle. Bu kişiler siteye kendi
    hesaplarıyla girdiğinde düzenleme açılır.
 
+## 5. Dosya yükleme (Firebase Storage)
+
+Belgeler ve Tablolar sekmelerine bilgisayardan dosya yüklemek için gerekir.
+Sitede tür ve boyut sınırı yoktur.
+
+1. Firebase konsolunda sol alttaki plan adına (**Spark**) tıkla → **Blaze**
+   (kullandıkça öde) planına geç ve kart ekle. 5 GB'a kadar depolama ücretsizdir;
+   kulüp kullanımında ücret çıkması beklenmez. Aynı ekranda düşük bir bütçe
+   uyarısı (örneğin 1 $) kur.
+2. **Derleme → Storage → Başlayın** → konum olarak **US-CENTRAL1** seç (ücretsiz
+   kota ABD bölgelerinde geçerli) → üretim modu → Oluştur.
+3. Storage'da **Kurallar** sekmesini aç, `storage.rules` dosyasını yapıştır,
+   `SAHIBIN_GMAIL_ADRESI` yerine site sahibinin Gmail adresini yaz, **Yayınla**.
+   Firebase, kuralların Firestore'u okuması için izin isterse onayla.
+
+Storage açılmadan yükleme denenirse site "Dosya yükleme henüz açılmadı" uyarısı verir;
+Drive linki eklemek her zaman çalışır.
+
 ## Yedek
 
-Yetkililer sayfasındaki **Tüm veriyi yedekle (JSON)** her şeyi tek dosyaya indirir;
+Yetkililer sayfasındaki **Tüm veriyi yedekle (JSON)** birimleri, kişileri, görevleri,
+etkinlikleri, tabloları ve belge kayıtlarını tek dosyaya indirir (yüklenen dosyaların
+kendisi Storage'da kalır);
 **Yedekten geri yükle** aynı dosyayı geri yazar. Tablolar ayrıca Excel olarak indirilebilir.
 
 ## Dosyalar
@@ -81,5 +101,6 @@ Yetkililer sayfasındaki **Tüm veriyi yedekle (JSON)** her şeyi tek dosyaya in
 | `app.js` | Uygulama: departmanlar, görevler, etkinlikler, tablolar, müsaitlik |
 | `veri.js` | Firebase bağlantısı (giriş ve veritabanı) |
 | `firebase-config.js` | Firebase proje ayarları |
-| `firestore.rules` | Kim okur, kim yazar |
+| `firestore.rules` | Veritabanında kim okur, kim yazar |
+| `storage.rules` | Dosya deposunda kim okur, kim yükler |
 | `ilk-ekip.json` | Başlangıç ekip listesi |

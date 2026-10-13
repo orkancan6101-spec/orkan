@@ -34,13 +34,16 @@ function slug(s) {
 }
 
 /* ---------- sabitler ---------- */
-const DEPTS = [
+// Dört kurucu departman sabittir (kimlikleri kişi ve görev kayıtlarında kullanılır).
+// Yönetim kurulunun açtığı yeni birimler veritabanındaki birimler koleksiyonundan gelir.
+const SABIT_BIRIMLER = [
   { id: "kurumsal", no: "01", ad: "Kurumsal İlişkiler", k: "k1" },
   { id: "iletisim", no: "02", ad: "İletişim ve Sosyal Medya", k: "k2" },
   { id: "organizasyon", no: "03", ad: "Organizasyon", k: "k3" },
   { id: "erasmus", no: "04", ad: "Erasmus+", k: "k4" },
 ];
-const DEP = Object.fromEntries(DEPTS.map(d => [d.id, d]));
+let DEPTS = SABIT_BIRIMLER.slice();
+let DEP = Object.fromEntries(DEPTS.map(d => [d.id, d]));
 const SEVIYE = { baskan: "Departman Başkanı", yardimci: "Başkan Yardımcısı", ekip: "Ekip üyesi" };
 const SEVORD = { baskan: 0, yardimci: 1, ekip: 2 };
 const TURLER = [["metin", "Metin"], ["uzun", "Uzun not"], ["tik", "Onay kutusu"], ["tarih", "Tarih"], ["sayi", "Sayı"], ["secim", "Seçim listesi"], ["kisi", "Ekipten kişi"], ["link", "Link"], ["belge", "Belge"]];
@@ -63,7 +66,7 @@ const TONRENK = { ok: "var(--ok)", warn: "var(--warn)", bad: "var(--bad)", info:
 const S = {
   db: null, auth: null, kullanici: null, uid: null, sahip: false, sahipEposta: "", yetkililer: null, hata: "", gecmisHepsi: false, jsonYedek: null,
   canWrite: null, readOnly: false, noDb: false, booted: false, uploading: 0,
-  kisiler: new Map(), dosyalar: new Map(), gorevler: new Map(), belgeler: new Map(), musaitlik: new Map(), etkinlikler: new Map(), hareketler: [],
+  kisiler: new Map(), dosyalar: new Map(), gorevler: new Map(), belgeler: new Map(), musaitlik: new Map(), etkinlikler: new Map(), birimler: new Map(), hareketler: [], depo: null, yuklenen: null,
   loaded: {}, subErr: null,
   view: "genel", dosyaId: null,
   deptTab: {}, drafts: {}, dFiltre: {}, bitenAcik: {},
@@ -154,7 +157,7 @@ function chip(kid) {
   if (!k) return `<span class="chip faint">(silinmiş kişi)</span>`;
   return `<span class="chip"><i class="dot" style="background:var(--${DEP[k.departman]?.k || "faint"})"></i>${esc(k.ad)}</span>`;
 }
-function belgeHref(b) { return b.tur === "link" ? safeUrl(b.url) : (b.asset ? "/_blob/" + encodeURIComponent(b.asset) : ""); }
+function belgeHref(b) { return b.tur === "link" ? safeUrl(b.url) : String(b.url || ""); }
 function cellHTML(col, v) {
   if (v === undefined || v === null || v === "") { return col.tur === "tik" ? `<span class="tick"></span>` : ""; }
   switch (col.tur) {
@@ -249,8 +252,8 @@ async function init() {
   let ad;
   try { ad = window.KULUP_ADAPTOR || await (await import("./veri.js")).baglan(); }
   catch (e) { console.error(e); S.noDb = true; S.booted = true; S.hata = String(e && e.message || e); render(); return; }
-  S.db = ad.db; S.auth = ad.auth; S.booted = true;
-  ["kisiler", "dosyalar", "gorevler", "belgeler", "musaitlik", "etkinlikler"].forEach(subCol);
+  S.db = ad.db; S.auth = ad.auth; S.depo = ad.depo || null; S.booted = true;
+  ["kisiler", "dosyalar", "gorevler", "belgeler", "musaitlik", "etkinlikler", "birimler"].forEach(subCol);
   S.db.collection("hareketler").orderBy("zaman", "desc").limit(40).onSnapshot(s => {
     S.hareketler = s.docs.filter(d => d.exists).map(d => ({ id: d.id, ...d.data() })); S.loaded.hareketler = true; schedule();
   }, () => { });
@@ -281,7 +284,7 @@ const main = $("#main");
 function hashOku() {
   const h = decodeURIComponent(location.hash.slice(1) || "");
   if (h.startsWith("d-")) { S.view = "dosya"; S.dosyaId = h.slice(2); S.sh = yeniSh(S.dosyaId); }
-  else if (DEP[h] || ["musaitlik", "ekip", "etkinlikler", "yetkililer"].includes(h)) S.view = h;
+  else if (h) S.view = h; // bilinmeyen adres (henüz yüklenmemiş birim) yüklenene kadar genel bakışı gösterir
 }
 function go(v) {
   if (S.sh.editing) commitEdit();
@@ -293,7 +296,7 @@ function go(v) {
 let rTimer = 0;
 function schedule() { if (rTimer) return; rTimer = setTimeout(() => { rTimer = 0; render(); }, 30); }
 function render() {
-  renderNav(); renderMe();
+  birimleriKur(); renderNav(); renderMe();
   if (S.sh.editing || S.m.painting) { S.pending = true; return; }
   S.pending = false;
   const a = document.activeElement; let keep = null;
@@ -325,6 +328,7 @@ function renderNav() {
   const item = (v, no, ad, color, ct, tt = "Açık görev") => `<button class="nav-i${(S.view === v || (S.view === "dosya" && curDosya()?.departman === v)) ? " on" : ""}" data-act="nav" data-v="${v}"><span class="nav-no"${color ? ` style="color:var(--${color})"` : ""}>${no}</span>${esc(ad)}${ct ? `<span class="nav-ct" title="${tt}">${ct}</span>` : ""}</button>`;
   $("#nav").innerHTML = item("genel", "—", "Genel bakış") + item("etkinlikler", "◇", "Etkinlikler", "", yaklasanEtk().length, "Yaklaşan etkinlik") +
     DEPTS.map(d => item(d.id, d.no, d.ad, d.k + "t", open(d.id))).join("") +
+    (editable() ? `<button class="nav-i nav-add" data-act="birim-new"><span class="nav-no">+</span>Birim ekle</button>` : "") +
     `<div class="nav-sep"></div>` + item("musaitlik", "◷", "Müsaitlik") + item("ekip", "▤", "Yönetim şeması");
 }
 const LS = {
@@ -429,7 +433,7 @@ function vGenel() {
   <header class="hero-row"><div>
     <div class="eyebrow">ESOGÜ Otomotiv Kulübü <i>•</i> 2026–2027 dönemi</div>
     <h1 class="h-xl">Yönetim paneli</h1>
-    <p class="lead">Kim ne yapıyor, kime ne atandı, hangi iş gecikti. Dört departman tek ekranda.</p>
+    <p class="lead">Kim ne yapıyor, kime ne atandı, hangi iş gecikti. Bütün birimler tek ekranda.</p>
   </div></header>
   <section class="stats three">
     ${stat("Açık görev", yuk ? "…" : open.length, `${open.filter(g => g.durum === "devam").length} tanesi devam ediyor`)}
@@ -504,22 +508,22 @@ function suAn() {
 /* ---------- DEPARTMAN ---------- */
 function vDept(d) {
   const tab = S.deptTab[d.id] || "ekip";
-  const files = dosyalarOf(d.id), tasks = gorevlerOf(d.id), docs = [...S.belgeler.entries()].filter(([, b]) => b.departman === d.id);
+  const files = dosyalarOf(d.id), tasks = gorevlerOf(d.id), docs = belgelerOf(d.id, "belgeler"), ekler = belgelerOf(d.id, "tablolar");
   const ps = kisilerSirali(d.id);
   const openN = tasks.filter(acik).length, lateN = tasks.filter(gecikti).length;
   const t = (k, ad, n) => `<button class="tab${tab === k ? " on" : ""}" data-act="dtab" data-dep="${d.id}" data-tab="${k}">${ad}<b>${n}</b></button>`;
   let body;
   if (S.db && !(S.loaded.kisiler && S.loaded.gorevler && S.loaded.dosyalar)) body = `<p class="loading">Yükleniyor…</p>`;
-  else body = tab === "tablolar" ? tDosyalar(d, files) : tab === "belgeler" ? tBelgeler(d, docs) : tEkip(d);
+  else body = tab === "tablolar" ? tDosyalar(d, files, ekler) : tab === "belgeler" ? tBelgeler(d, docs) : tEkip(d);
   return `<div style="--dc:var(--${d.k});--dct:var(--${d.k}t)">
   ${banner()}
   <header class="dhero">
-    <div class="dcol-top" style="justify-content:flex-start;gap:14px"><span class="dno">${d.no}</span><span class="eyebrow">Departman</span></div>
+    <div class="dcol-top" style="justify-content:flex-start;gap:14px"><span class="dno">${d.no}</span><span class="eyebrow">${d.ozel ? "Birim" : "Departman"}</span>${d.ozel && editable() ? `<button class="btn ghost sm" data-act="birim-ayar" data-id="${esc(d.id)}" style="margin-left:auto">Birim ayarları</button>` : ""}</div>
     <h1 class="h-xl">${esc(d.ad)}</h1>
     <div class="dhero-bar"></div>
-    <p class="lead">${ps.length} kişi · ${openN} açık görev${lateN ? ` · <span class="late">${lateN} gecikmiş</span>` : ""} · ${files.length} tablo · ${docs.length} belge</p>
+    <p class="lead">${ps.length} kişi · ${openN} açık görev${lateN ? ` · <span class="late">${lateN} gecikmiş</span>` : ""} · ${files.length} tablo${ekler.length ? ` · ${ekler.length} ek` : ""} · ${docs.length} belge</p>
   </header>
-  <nav class="tabs" aria-label="Departman bölümleri">${t("ekip", "Ekip ve görevler", openN)}${t("tablolar", "Tablolar", files.length)}${t("belgeler", "Belgeler", docs.length)}</nav>
+  <nav class="tabs" aria-label="Departman bölümleri">${t("ekip", "Ekip ve görevler", openN)}${t("tablolar", "Tablolar", files.length + ekler.length)}${t("belgeler", "Belgeler", docs.length)}</nav>
   ${body}</div>`;
 }
 function tEkip(d) {
@@ -554,10 +558,11 @@ function kisiKart(p, tasks, d) {
     <div class="pc-f">${ed ? `<button class="btn ghost sm" data-act="task-new" data-dep="${d.id}" data-kisi="${esc(p.id)}">+ Görev ata</button>` : ""}${biten.length ? `<button class="linkbtn" data-act="biten" data-key="${esc(key)}">${S.bitenAcik[key] ? "Biten görevleri gizle" : `Biten görevler (${biten.length})`}</button>` : ""}</div>
   </article>`;
 }
-function tDosyalar(d, files) {
+function tDosyalar(d, files, ekler = []) {
   const ed = editable();
-  return `${ed ? `<div class="toolbar"><button class="btn" data-act="sheet-new" data-dep="${d.id}">+ Yeni tablo</button><button class="btn ghost" data-act="import" data-dep="${d.id}">Excel / CSV içe aktar</button></div>` : ""}
-  ${files.length ? `<div class="fcards">${files.map(f => fcard(f)).join("")}</div>` : `<div class="empty"><h3>Bu departmanda henüz tablo yok</h3><p>${ed ? "Boş bir tablo açın ya da elinizdeki Excel dosyasını içe aktarın. Tablo burada Excel gibi düzenlenir; onay kutusu ve not sütunları ekleyebilirsiniz." : "Tablolar eklendiğinde burada görünür."}</p></div>`}`;
+  return `${ed ? `<div class="toolbar"><button class="btn" data-act="sheet-new" data-dep="${d.id}">+ Yeni tablo</button><button class="btn ghost" data-act="import" data-dep="${d.id}">Excel / CSV içe aktar</button><label class="btn ghost filebtn">PDF / JPG ekle<input type="file" multiple data-up="${d.id}" data-alan="tablolar" aria-label="PDF ya da görsel ekle"></label></div>` : ""}
+  ${yuklemeHTML()}
+  ${files.length || ekler.length ? `<div class="fcards" data-drop="${d.id}" data-alan="tablolar">${files.map(f => fcard(f)).join("")}${ekler.map(([id, b]) => ekKart(id, b)).join("")}</div>` : `<div class="empty" data-drop="${d.id}" data-alan="tablolar"><h3>Bu birimde henüz tablo yok</h3><p>${ed ? "Boş bir tablo açın, elinizdeki Excel dosyasını içe aktarın ya da PDF ve JPG ekleyin. Dosyaları buraya sürükleyip bırakabilirsiniz." : "Tablolar ve dosyalar eklendiğinde burada görünür."}</p></div>`}`;
 }
 function fcard(f) {
   const rs = satirlar(f); const tik = (f.kolonlar || []).find(c => c.tur === "tik");
@@ -570,12 +575,13 @@ function fcard(f) {
 }
 function tBelgeler(d, docs) {
   const ed = editable();
-  docs.sort((a, b) => String(b[1].tarih || "").localeCompare(a[1].tarih || ""));
-  const tip = b => b.tur === "link" ? "LİNK" : (String(b.ad).split(".").pop() || "").slice(0, 4).toUpperCase();
-  return `  ${ed ? `<form class="qadd" data-form="link-add" data-dep="${d.id}"><input class="inp grow" name="ad" placeholder="Belge adı" required aria-label="Belge adı"><input class="inp grow" name="url" placeholder="https://drive.google.com/…" required aria-label="Link"><button class="btn ghost">Link ekle</button></form>` : ""}
-  ${docs.length ? `<div class="tbl-wrap"><table class="list"><thead><tr><th>Tür</th><th>Belge</th><th>Ekleyen</th><th>Tarih</th><th>Not</th><th></th></tr></thead><tbody>
-    ${docs.map(([id, b]) => { const h = belgeHref(b); return `<tr><td><span class="ftype">${esc(tip(b))}</span></td><td>${h ? `<a href="${esc(h)}" target="_blank" rel="noopener noreferrer">${esc(b.ad)}</a>` : esc(b.ad)}${b.boyut ? ` <span class="faint">${(b.boyut / 1048576).toFixed(b.boyut > 1048576 ? 1 : 2)} MB</span>` : ""}</td><td><span data-uid="${esc(b.yukleyen || "")}">Bir üye</span></td><td class="faint">${esc(fmtTarih(String(b.tarih || "").slice(0, 10)))}</td><td class="faint">${esc(b.not || "")}</td><td>${ed ? `<button class="btn ghost sm" data-act="belge" data-id="${esc(id)}">Düzenle</button>` : ""}</td></tr>`; }).join("")}
-  </tbody></table></div>` : `<div class="empty"><h3>Henüz belge yok</h3><p>Belgeleri Google Drive’a yükleyip paylaşım linkini buraya ekleyin. Excel dosyalarını Tablolar sekmesinden içe aktarabilirsiniz.</p></div>`}`;
+  const tip = b => b.tur === "link" ? "LİNK" : (uzanti(b) || "DOSYA");
+  return `${ed ? `<label class="drop" data-drop="${d.id}" data-alan="belgeler"><input type="file" multiple data-up="${d.id}" data-alan="belgeler" aria-label="Bilgisayardan dosya yükle"><b>Bilgisayardan dosya yükle</b><span>Tıklayıp seçin ya da dosyaları buraya sürükleyip bırakın. Her türden dosya yüklenebilir (Word, Excel, PowerPoint, PDF, görsel, video, ZIP…); boyut sınırı yok. Birden çok dosyayı aynı anda seçebilirsiniz.</span></label>` : ""}
+  ${yuklemeHTML()}
+  ${ed ? `<form class="qadd" data-form="link-add" data-dep="${d.id}"><input class="inp grow" name="ad" placeholder="Link adı" required aria-label="Link adı"><input class="inp grow" name="url" placeholder="https://drive.google.com/…" required aria-label="Link"><button class="btn ghost">Link ekle</button></form>` : ""}
+  ${docs.length ? `<div class="tbl-wrap"><table class="list"><thead><tr><th>Tür</th><th>Belge</th><th>Boyut</th><th>Ekleyen</th><th>Tarih</th><th>Not</th><th></th></tr></thead><tbody>
+    ${docs.map(([id, b]) => { const h = belgeHref(b); return `<tr><td><span class="ftype">${esc(tip(b))}</span></td><td>${h ? `<a href="${esc(h)}" target="_blank" rel="noopener noreferrer">${esc(b.ad)}</a>` : esc(b.ad)}</td><td class="faint">${esc(boyutYaz(b.boyut))}</td><td><span data-uid="${esc(b.yukleyen || "")}">Bir üye</span></td><td class="faint">${esc(fmtTarih(String(b.tarih || "").slice(0, 10)))}</td><td class="faint">${esc(b.not || "")}</td><td>${ed ? `<button class="btn ghost sm" data-act="belge" data-id="${esc(id)}">Düzenle</button>` : ""}</td></tr>`; }).join("")}
+  </tbody></table></div>` : `<div class="empty"><h3>Henüz belge yok</h3><p>${ed ? "Bilgisayarınızdan dosya yükleyin ya da Drive linki ekleyin." : "Belgeler eklendiğinde burada görünür."}</p></div>`}`;
 }
 
 /* ---------- TABLO ---------- */
@@ -858,7 +864,7 @@ function sheetModal() {
     <div class="form">
       <label class="field"><span>Başlık</span><input class="inp" name="baslik" required value="${esc(d.baslik)}"></label>
       <label class="field"><span>Açıklama</span><textarea class="inp" name="aciklama" rows="3">${esc(d.aciklama || "")}</textarea></label>
-      <label class="field"><span>Departman</span><select class="inp" name="departman">${DEPTS.map(x => `<option value="${x.id}"${x.id === d.departman ? " selected" : ""}>${esc(x.ad)}</option>`).join("")}</select></label>
+      <label class="field"><span>Birim</span><select class="inp" name="departman">${DEPTS.map(x => `<option value="${x.id}"${x.id === d.departman ? " selected" : ""}>${esc(x.ad)}</option>`).join("")}</select></label>
       <div class="mrow"><label class="field check"><input type="checkbox" id="copy-rows" checked><span>Satırlarla birlikte</span></label><button type="button" class="btn ghost sm" data-act="sheet-copy">Kopyasını oluştur</button></div>
     </div>
     <div id="del-area" class="confirm" hidden><p><b>${esc(d.baslik)}</b> tablosu ve içindeki ${satirlar(d).length} satır silinecek. Hemen ardından çıkan bildirimden geri alabilirsiniz.</p><button type="button" class="btn danger" data-act="sheet-del-ok">Evet, tabloyu sil</button></div>
@@ -1034,7 +1040,7 @@ function taskModal(id, dep, kid) {
         <label class="field"><span>Son tarih</span><input class="inp" type="date" name="son_tarih" value="${esc(g.son_tarih || "")}"${dis}></label>
         <label class="field"><span>Durum</span><select class="inp" name="durum"${dis}>${GDURUM.map(([k, a]) => `<option value="${k}"${k === g.durum ? " selected" : ""}>${a}</option>`).join("")}</select></label>
         <label class="field"><span>Öncelik</span><select class="inp" name="oncelik"${dis}>${Object.entries(ONCELIK).map(([k, a]) => `<option value="${k}"${k === g.oncelik ? " selected" : ""}>${a}</option>`).join("")}</select></label>
-        <label class="field"><span>Departman</span><select class="inp" name="departman"${dis}>${DEPTS.map(x => `<option value="${x.id}"${x.id === g.departman ? " selected" : ""}>${esc(x.ad)}</option>`).join("")}</select></label>
+        <label class="field"><span>Birim</span><select class="inp" name="departman"${dis}>${DEPTS.map(x => `<option value="${x.id}"${x.id === g.departman ? " selected" : ""}>${esc(x.ad)}</option>`).join("")}</select></label>
       </div>
       ${id && g.olusturma ? `<p class="mtext faint" style="margin:0">Oluşturan <span data-uid="${esc(g.olusturan || "")}">Bir üye</span> · ${esc(goreli(g.olusturma))}${g.tamamlanma ? ` · tamamlandı ${esc(goreli(g.tamamlanma))}` : ""}</p>` : ""}
     </div>
@@ -1062,15 +1068,20 @@ function belgeModal(id) {
       <label class="field"><span>Ad</span><input class="inp" name="ad" required value="${esc(b.ad)}"></label>
       ${b.tur === "link" ? `<label class="field"><span>Link</span><input class="inp" name="url" value="${esc(b.url || "")}"></label>` : ""}
       <label class="field"><span>Not</span><input class="inp" name="not" value="${esc(b.not || "")}" placeholder="örn. Güncel sürüm, imzalı kopya"></label>
-      <label class="field"><span>Departman</span><select class="inp" name="departman">${DEPTS.map(x => `<option value="${x.id}"${x.id === b.departman ? " selected" : ""}>${esc(x.ad)}</option>`).join("")}</select></label>
-      ${h ? `<a class="cell-link" href="${esc(h)}" target="_blank" rel="noopener noreferrer">Belgeyi aç ↗</a>` : ""}
+      <label class="field"><span>Birim</span><select class="inp" name="departman">${DEPTS.map(x => `<option value="${x.id}"${x.id === b.departman ? " selected" : ""}>${esc(x.ad)}</option>`).join("")}</select></label>
+      ${b.tur === "dosya" ? `<label class="field"><span>Nerede görünsün</span><select class="inp" name="alan"><option value="belgeler"${b.alan !== "tablolar" ? " selected" : ""}>Belgeler</option><option value="tablolar"${b.alan === "tablolar" ? " selected" : ""}>Tablolar</option></select></label>` : ""}
+      ${h ? `<a class="cell-link" href="${esc(h)}" target="_blank" rel="noopener noreferrer">${b.tur === "dosya" ? "Dosyayı aç" : "Belgeyi aç"} ↗</a>${b.boyut ? ` <span class="faint">${esc(boyutYaz(b.boyut))}</span>` : ""}` : ""}
     </div>
-    <div id="del-area" class="confirm" hidden><p>Link listeden kaldırılır; Drive’daki dosyaya dokunulmaz. Tablolarda bu belgeye verilen bağlantılar “silinmiş belge” olarak görünür.</p><button type="button" class="btn danger" data-act="belge-del-ok" data-id="${esc(id)}">Evet, sil</button></div>
+    <div id="del-area" class="confirm" hidden><p>${b.tur === "dosya" ? "Dosya depodan kalıcı olarak silinir, geri alınamaz." : "Link listeden kaldırılır; Drive’daki dosyaya dokunulmaz."} Tablolarda bu belgeye verilen bağlantılar “silinmiş belge” olarak görünür.</p><button type="button" class="btn danger" data-act="belge-del-ok" data-id="${esc(id)}">Evet, sil</button></div>
     <div class="mact"><button type="button" class="btn ghost" data-act="belge-del">Sil</button><span class="sp"></span><button type="button" class="btn ghost" data-act="modal-close">Vazgeç</button><button class="btn">Kaydet</button></div>
   </form>`);
 }
 async function belgeSil(id) {
   const b = S.belgeler.get(id); if (!b) return;
+  if (b.tur === "dosya" && b.yol && S.depo) {
+    try { await S.depo.sil(b.yol); }
+    catch (e) { if (e && e.code !== "depo_yok") { toast(e.code === "izin" ? "Dosyayı silme izni yok." : "Dosya silinemedi: " + (e.message || e.code)); return; } }
+  }
   write("belgeler", id, "delete"); logla("belge:" + id, `${b.ad} belgesini sildi`, b.departman); closeModal(); toast("Belge silindi");
 }
 
@@ -1169,8 +1180,9 @@ function vEkip() {
   <header class="hero-row"><div>
     <div class="eyebrow">ESOGÜ Otomotiv Kulübü <i>•</i> 2026–2027 dönemi</div>
     <h1 class="h-xl">Yönetim şeması</h1>
-    <p class="lead">Dört departman, ${ps.length} görev. Renkli kartlar departman başkanlarını, koyu kartlar başkan yardımcılarını ve ekip üyelerini gösterir. Bir karta tıklayınca kişinin görevleri ve haftalık programı açılır.</p>
-  </div><div class="ostats"><div class="obox"><b>${ps.length}</b><span>Atanmış görev</span></div><div class="obox outline"><b>${DEPTS.length}</b><span>Departman</span></div></div></header>
+    <p class="lead">${DEPTS.length} birim, ${ps.length} görev. Renkli kartlar departman başkanlarını, koyu kartlar başkan yardımcılarını ve ekip üyelerini gösterir. Bir karta tıklayınca kişinin görevleri ve haftalık programı açılır.</p>
+  </div><div class="ostats"><div class="obox"><b>${ps.length}</b><span>Atanmış görev</span></div><div class="obox outline"><b>${DEPTS.length}</b><span>Birim</span></div></div></header>
+  ${ed ? `<div class="toolbar" style="margin-top:22px"><button class="btn ghost" data-act="birim-new">+ Birim ekle</button></div>` : ""}
   <div class="lane"></div>
   ${S.db && !S.loaded.kisiler ? `<p class="loading">Yükleniyor…</p>` : `<div class="org">${DEPTS.map(d => { const m = ps.filter(p => p.departman === d.id); const ust = m.filter(p => p.seviye !== "ekip"), alt = m.filter(p => p.seviye === "ekip");
     return `<div class="ocol" style="--dc:var(--${d.k});--dct:var(--${d.k}t)"><div class="dcol-top"><span class="dno">${d.no}</span><span class="mini-lbl">${m.length} dolu</span></div><h3>${esc(d.ad)}</h3>${ust.map(card).join("")}${alt.length ? `<div class="odiv">EKİP</div>${alt.map(card).join("")}` : ""}${ed ? `<button class="oadd" data-act="kisi-edit" data-dep="${d.id}">+ Kişi ekle</button>` : ""}</div>`; }).join("")}</div>`}`;
@@ -1204,7 +1216,7 @@ function kisiForm(id, dep) {
       <div class="fgrid">
         <label class="field"><span>Ad soyad</span><input class="inp" name="ad" required value="${esc(k.ad || "")}" autofocus></label>
         <label class="field"><span>Görev unvanı</span><input class="inp" name="rol" value="${esc(k.rol || "")}" placeholder="örn. Sorumlu"></label>
-        <label class="field"><span>Departman</span><select class="inp" name="departman">${DEPTS.map(x => `<option value="${x.id}"${x.id === k.departman ? " selected" : ""}>${esc(x.ad)}</option>`).join("")}</select></label>
+        <label class="field"><span>Birim</span><select class="inp" name="departman">${DEPTS.map(x => `<option value="${x.id}"${x.id === k.departman ? " selected" : ""}>${esc(x.ad)}</option>`).join("")}</select></label>
         <label class="field"><span>Kademe</span><select class="inp" name="seviye">${Object.entries(SEVIYE).map(([v, a]) => `<option value="${v}"${v === k.seviye ? " selected" : ""}>${a}</option>`).join("")}</select></label>
       </div>
       <label class="field"><span>Sorumlulukları</span><textarea class="inp" name="aciklama" rows="3">${esc(k.aciklama || "")}</textarea></label>
@@ -1226,8 +1238,10 @@ function helpModal() {
   <p class="mtext">Her departmanın açılış sayfasında departmandaki herkesin kendi kartı var. Kartta o kişiye atanan görevler, kimin atadığı ve son tarihler görünür; herkes herkesi görür. Üstteki düğmelerle tek bir kişiye, sana atananlara ya da senin atadıklarına bakabilirsin. Görevin solundaki yuvarlak durumu değiştirir: boş yapılacak, yarım dolu devam ediyor, tikli bitti.</p>
   <h3 class="mh">Tablolar (Excel gibi)</h3>
   <p class="mtext">Tabloları siz açarsınız: boş tablo ya da elinizdeki .xlsx / .csv dosyası. Hücreye tıklayıp yazın; onay kutularına tek tıkla işaret koyun; satır numarasına tıklayınca o satırın tüm alanları ve notu açılır. Excel'de kopyaladığınız alanı seçili hücreye yapıştırabilirsiniz. “Excel indir” ile geri alırsınız.</p>
-  <h3 class="mh">Belgeler</h3>
-  <p class="mtext">Belgeleri Google Drive’a yükleyip paylaşım linkini Belgeler sekmesine ekleyin. Bir tablodaki “Belge” sütunu, eklenen bir belgeyi ilgili satıra bağlar.</p>
+  <h3 class="mh">Belgeler ve dosyalar</h3>
+  <p class="mtext">Belgeler sekmesine bilgisayardan her türden dosya yüklenir (tür ve boyut sınırı yok) ya da Drive linki eklenir. Tablolar sekmesine tabloların yanında PDF ve JPG gibi dosyalar da eklenebilir. Bir tablodaki “Belge” sütunu, eklenen bir belgeyi ilgili satıra bağlar.</p>
+  <h3 class="mh">Birimler</h3>
+  <p class="mtext">Yetkililer menüdeki “+ Birim ekle” ile departmanların yanına yeni birim açar (örneğin Yönetim Kurulu). Her birimin kendi ekip kartları, görevleri, tabloları ve belgeleri olur. Kişiler Yönetim şeması sayfasından birime eklenir.</p>
   <h3 class="mh">Etkinlikler</h3>
   <p class="mtext">Kulübün takvimi. Yaklaşan etkinlikler genel bakışta da görünür; tarih, saat, yer, sorumlu ve kayıt linki eklenebilir.</p>
   <h3 class="mh">Müsaitlik</h3>
@@ -1286,7 +1300,7 @@ function etkModal(id) {
         <label class="field"><span>Tarih</span><input class="inp" type="date" name="tarih" required value="${esc(e.tarih || "")}"></label>
         <label class="field"><span>Saat</span><input class="inp" name="saat" placeholder="örn. 14:00–16:00" value="${esc(e.saat || "")}"></label>
         <label class="field"><span>Yer</span><input class="inp" name="yer" value="${esc(e.yer || "")}"></label>
-        <label class="field"><span>Departman</span><select class="inp" name="departman"><option value="">Tüm kulüp</option>${DEPTS.map(x => `<option value="${x.id}"${x.id === e.departman ? " selected" : ""}>${esc(x.ad)}</option>`).join("")}</select></label>
+        <label class="field"><span>Birim</span><select class="inp" name="departman"><option value="">Tüm kulüp</option>${DEPTS.map(x => `<option value="${x.id}"${x.id === e.departman ? " selected" : ""}>${esc(x.ad)}</option>`).join("")}</select></label>
         <label class="field"><span>Sorumlu</span><select class="inp" name="sorumlu">${kisiOptions(e.sorumlu || "", e.departman)}</select></label>
         <label class="field"><span>Kayıt / ayrıntı linki</span><input class="inp" name="link" placeholder="https://…" value="${esc(e.link || "")}"></label>
       </div>
@@ -1310,7 +1324,7 @@ function etkSave(f) {
 }
 
 /* ---------- YETKİLİLER (site sahibi) ---------- */
-const KOLEKSIYONLAR = ["kisiler", "gorevler", "etkinlikler", "dosyalar", "belgeler", "musaitlik"];
+const KOLEKSIYONLAR = ["birimler", "kisiler", "gorevler", "etkinlikler", "dosyalar", "belgeler", "musaitlik"];
 const epostaMi = e => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e);
 function vYetki() {
   const head = `<header><div class="eyebrow">Site ayarları</div><h1 class="h-xl">Yetkililer</h1>
@@ -1340,8 +1354,100 @@ function jsonYedekModal(j) {
   S.jsonYedek = j;
   const say = KOLEKSIYONLAR.map(c => [c, Object.keys(j[c] || {}).length]).filter(x => x[1]);
   modal(`<h2>Yedekten geri yükle</h2>
-    <p class="mtext">${say.length ? say.map(([c, n]) => `${n} ${({ kisiler: "kişi", gorevler: "görev", etkinlikler: "etkinlik", dosyalar: "tablo", belgeler: "belge", musaitlik: "müsaitlik kaydı" })[c]}`).join(", ") + " yeniden yazılacak." : "Dosyada geri yüklenecek kayıt bulunamadı."}</p>
+    <p class="mtext">${say.length ? say.map(([c, n]) => `${n} ${({ birimler: "birim", kisiler: "kişi", gorevler: "görev", etkinlikler: "etkinlik", dosyalar: "tablo", belgeler: "belge", musaitlik: "müsaitlik kaydı" })[c]}`).join(", ") + " yeniden yazılacak." : "Dosyada geri yüklenecek kayıt bulunamadı."}</p>
     <div class="mact"><span class="sp"></span><button class="btn ghost" data-act="modal-close">Vazgeç</button>${say.length ? `<button class="btn" data-act="json-onay">Geri yükle</button>` : ""}</div>`);
+}
+
+
+/* ---------- BİRİMLER ---------- */
+const RENKLER = ["k5", "k6", "k7", "k8", "k1", "k2", "k3", "k4"];
+function birimleriKur() {
+  const ozel = [...S.birimler.entries()].map(([id, b]) => ({ id, ad: b.ad || "Yeni birim", k: RENKLER.includes(b.renk) ? b.renk : "k5", ozel: true, sira: b.sira ?? 50, olusturma: b.olusturma || "" }))
+    .sort((a, b) => a.sira - b.sira || String(a.olusturma).localeCompare(b.olusturma));
+  DEPTS = [...SABIT_BIRIMLER, ...ozel.map((b, i) => ({ ...b, no: pad(SABIT_BIRIMLER.length + i + 1) }))];
+  DEP = Object.fromEntries(DEPTS.map(d => [d.id, d]));
+}
+function birimIcerik(id) {
+  return { kisi: kisilerSirali(id).length, gorev: gorevlerOf(id).length, tablo: dosyalarOf(id).length, belge: [...S.belgeler.values()].filter(b => b.departman === id).length };
+}
+function birimModal(id) {
+  const b = id ? S.birimler.get(id) : { ad: "", renk: RENKLER[S.birimler.size % 4] }; if (!b) return;
+  const ic = id ? birimIcerik(id) : null; const dolu = ic && (ic.kisi + ic.gorev + ic.tablo + ic.belge);
+  modal(`<form data-form="birim-save" data-id="${esc(id || "")}">
+    <h2>${id ? "Birim ayarları" : "Yeni birim"}</h2>
+    ${id ? "" : `<p class="mtext">Yeni birim, departmanların yanında kendi sayfasıyla açılır: ekip kartları, görev atama, tablolar ve belgeler. Kişileri Yönetim şeması sayfasından bu birime ekleyebilirsin.</p>`}
+    <div class="form">
+      <label class="field"><span>Birim adı</span><input class="inp" name="ad" required value="${esc(b.ad || "")}" placeholder="örn. Yönetim Kurulu" autofocus></label>
+      <div class="field"><span>Renk</span><div class="renkler" role="radiogroup" aria-label="Birim rengi">${RENKLER.map(k => `<label class="renk"><input type="radio" name="renk" value="${k}"${k === b.renk ? " checked" : ""} aria-label="Renk ${k.slice(1)}"><i style="background:var(--${k})"></i></label>`).join("")}</div></div>
+    </div>
+    ${id ? `<div id="del-area" class="confirm" hidden>${dolu
+      ? `<p>Bu birimde ${[ic.kisi && ic.kisi + " kişi", ic.gorev && ic.gorev + " görev", ic.tablo && ic.tablo + " tablo", ic.belge && ic.belge + " belge"].filter(Boolean).join(", ")} var. Silmeden önce bunları başka bir birime taşı.</p>`
+      : `<p>${esc(b.ad)} birimi silinecek. Hemen ardından çıkan bildirimden geri alabilirsin.</p><button type="button" class="btn danger" data-act="birim-sil" data-id="${esc(id)}">Evet, birimi sil</button>`}</div>` : ""}
+    <div class="mact">${id ? `<button type="button" class="btn ghost" data-act="del-ac">Birimi sil</button>` : ""}<span class="sp"></span><button type="button" class="btn ghost" data-act="modal-close">Vazgeç</button><button class="btn">${id ? "Kaydet" : "Birimi aç"}</button></div>
+  </form>`);
+}
+function birimKaydet(f) {
+  const fd = new FormData(f); const ad = String(fd.get("ad") || "").trim(); if (!ad) return;
+  const renk = RENKLER.includes(String(fd.get("renk"))) ? String(fd.get("renk")) : "k5"; const id = f.dataset.id;
+  if (id) { write("birimler", id, "update", { ad, renk, guncelleme: nowISO() }); logla("birim:" + id, `${ad} biriminin ayarlarını değiştirdi`, id); closeModal(); return; }
+  const yeni = "b-" + slug(ad) + "-" + rnd().slice(0, 3);
+  write("birimler", yeni, "set", { ad, renk, sira: 50, olusturma: nowISO(), olusturan: S.uid || "", olusturanAd: S.kullanici?.ad || "" });
+  logla("birim:" + yeni, `${ad} birimini açtı`, yeni);
+  closeModal(); go(yeni); toast(`${ad} birimi açıldı`);
+}
+
+/* ---------- DOSYA YÜKLEME ---------- */
+const boyutYaz = n => !n ? "" : n < 1048576 ? Math.max(1, Math.round(n / 1024)) + " KB" : n < 1073741824 ? (n / 1048576).toFixed(1).replace(".", ",") + " MB" : (n / 1073741824).toFixed(2).replace(".", ",") + " GB";
+const dosyaAdiTemiz = ad => String(ad || "dosya").replace(/[\\/#?\[\]*\u0000-\u001f]/g, "_").slice(-120);
+const resimMi = b => /^image\//.test(b.contentType || "") || /\.(jpe?g|png|gif|webp|bmp|svg|heic|avif)$/i.test(b.ad || "");
+const uzanti = b => (String(b.ad || "").includes(".") ? String(b.ad).split(".").pop() : "").slice(0, 5).toUpperCase();
+function belgelerOf(dep, alan) {
+  return [...S.belgeler.entries()].filter(([, b]) => b.departman === dep && (alan === "tablolar" ? b.alan === "tablolar" : b.alan !== "tablolar"))
+    .sort((a, b) => String(b[1].tarih || "").localeCompare(a[1].tarih || ""));
+}
+function yuklemeHTML() {
+  const y = S.yuklenen; if (!y) return "";
+  return `<div class="yukleme" id="yukleme" role="status"><span>Yükleniyor${y.kalan > 1 ? ` (${y.kalan} dosya)` : ""}:</span><b>${esc(y.ad)}</b><div class="bar"><i style="width:${Math.round(y.oran * 100)}%"></i></div><span id="yukleme-oran">%${Math.round(y.oran * 100)}</span></div>`;
+}
+function depoMesaj(e, ad) {
+  const c = e && e.code;
+  if (c === "depo_yok") return "Dosya yükleme henüz açılmadı: Firebase'de Storage kurulmalı (KURULUM.md, 5. adım).";
+  if (c === "izin") return "Dosya yükleme izni yok. Yetkili hesapla giriş yaptığından emin ol; Storage kuralları da yayımlanmış olmalı.";
+  if (c === "kota") return "Dosya deposunun kotası doldu. Kullanılmayan dosyaları sil ya da Firebase planını kontrol et.";
+  if (c === "iptal") return `${ad} yüklemesi iptal edildi.`;
+  return `${ad} yüklenemedi: ${(e && e.message) || e}`;
+}
+async function yukle(files, dep, alan) {
+  files = [...files]; if (!files.length) return;
+  if (!editable()) { toast(S.kullanici ? "Dosya yüklemek için yetkili listesinde olmalısın." : "Dosya yüklemek için Google ile giriş yap."); return; }
+  if (!S.depo) { toast(depoMesaj({ code: "depo_yok" })); return; }
+  if (S.yuklenen) { toast("Bir yükleme sürüyor, bitince tekrar dene."); return; }
+  let n = 0;
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i]; const id = newId("b"); const yol = `belgeler/${dep}/${id}-${dosyaAdiTemiz(f.name)}`;
+    S.yuklenen = { ad: f.name, oran: 0, kalan: files.length - i }; render();
+    try {
+      const r = await S.depo.yukle(yol, f, o => {
+        S.yuklenen.oran = o;
+        const bar = $("#yukleme .bar i"), yz = $("#yukleme-oran");
+        if (bar) bar.style.width = Math.round(o * 100) + "%"; if (yz) yz.textContent = "%" + Math.round(o * 100);
+      });
+      write("belgeler", id, "set", { ad: f.name, departman: dep, alan: alan === "tablolar" ? "tablolar" : "belgeler", tur: "dosya", url: r.url, yol, boyut: r.boyut, contentType: r.tur, yukleyen: S.uid || "", yukleyenAd: S.kullanici?.ad || "", tarih: nowISO(), not: "" });
+      logla("yukle:" + dep, `${DEP[dep]?.ad || ""} birimine dosya yükledi: ${f.name}`, dep); n++;
+    } catch (e) { toast(depoMesaj(e, f.name)); if (e && (e.code === "depo_yok" || e.code === "izin")) break; }
+  }
+  S.yuklenen = null; render();
+  if (n) toast(n === 1 ? `${files[0].name} yüklendi` : `${n} dosya yüklendi`);
+}
+function ekKart(id, b) {
+  const ed = editable();
+  return `<div class="fcard ek">
+    <a class="ek-a" href="${esc(b.url || "#")}" target="_blank" rel="noopener noreferrer">
+      ${resimMi(b) ? `<span class="ek-on"><img src="${esc(b.url)}" alt="${esc(b.ad)}" loading="lazy"></span>` : `<span class="ek-on ek-ikon">${esc(uzanti(b) || "DOSYA")}</span>`}
+      <h3>${esc(b.ad)}</h3>
+    </a>
+    <div class="fmeta"><span>${esc(boyutYaz(b.boyut))}</span><span>${esc(goreli(b.tarih))}</span>${ed ? `<button class="btn ghost sm" data-act="belge" data-id="${esc(id)}">Düzenle</button>` : ""}</div>
+  </div>`;
 }
 
 /* ---------- pencere ve bildirim ---------- */
@@ -1434,6 +1540,9 @@ const ACT = {
   "m-bos": () => { const kid = S.m.kisi; mYaz(kid, mgrid(kid).map(r => r.replace(/\./g, "m"))); render(); },
   "m-temizle": () => { const kid = S.m.kisi; mYaz(kid, GUNLER.map(() => ".".repeat(SAATN))); render(); toast("Program temizlendi"); },
   "modal-close": () => closeModal(),
+  "birim-new": () => birimModal(null),
+  "birim-ayar": el => birimModal(el.dataset.id),
+  "birim-sil": el => { const id = el.dataset.id; const b = S.birimler.get(id); if (!b) return; const bk = clone(b); write("birimler", id, "delete"); logla("birim:" + id, `${b.ad} birimini kapattı`, ""); closeModal(); go("genel"); toast(`${b.ad} birimi silindi`, { label: "Geri al", fn: () => write("birimler", id, "set", bk) }); },
   "del-ac": () => { const a = $("#del-area"); if (a) a.hidden = false; },
   "giris": () => { if (S.auth) S.auth.giris().catch(e => toast("Giriş yapılamadı: " + (e && e.message || e))); },
   "cikis": () => { if (S.auth) S.auth.cikis(); },
@@ -1454,6 +1563,7 @@ const ACT = {
 };
 const FORM = {
   "task-save": f => taskSave(f),
+  "birim-save": f => birimKaydet(f),
   "etk-save": f => etkSave(f),
   "yetkili-ekle": f => { const e = String(new FormData(f).get("eposta") || "").trim().toLowerCase(); if (!epostaMi(e)) { toast("Geçerli bir e-posta yaz."); return; } if (e === S.sahipEposta || (S.yetkililer || []).includes(e)) { toast("Bu adres zaten listede."); return; } yetkiliYaz([...(S.yetkililer || []), e], `${e} yetkili olarak eklendi`); },
   "link-add": f => {
@@ -1462,7 +1572,7 @@ const FORM = {
     const id = newId("b"); write("belgeler", id, "set", { ad, url, departman: f.dataset.dep, tur: "link", yukleyen: S.uid || "", yukleyenAd: S.kullanici?.ad || "", tarih: nowISO(), not: "" });
     logla("belge:" + id, `${ad} linkini ekledi`, f.dataset.dep); f.reset();
   },
-  "belge-save": f => { const fd = new FormData(f); const p = { ad: String(fd.get("ad") || "").trim(), not: String(fd.get("not") || ""), departman: fd.get("departman") }; if (fd.has("url")) { const u = safeUrl(fd.get("url")); if (!u) { toast("Geçerli bir link girin."); return; } p.url = u; } write("belgeler", f.dataset.id, "update", p); closeModal(); },
+  "belge-save": f => { const fd = new FormData(f); const p = { ad: String(fd.get("ad") || "").trim(), not: String(fd.get("not") || ""), departman: fd.get("departman") }; if (fd.has("alan")) p.alan = fd.get("alan") === "tablolar" ? "tablolar" : "belgeler"; if (fd.has("url")) { const u = safeUrl(fd.get("url")); if (!u) { toast("Geçerli bir link girin."); return; } p.url = u; } write("belgeler", f.dataset.id, "update", p); closeModal(); },
   "col-save": f => saveCol(f),
   "sheet-save": f => { const fd = new FormData(f); const d = curDosya(); if (!d) return; const p = { baslik: String(fd.get("baslik") || "").trim() || d.baslik, aciklama: String(fd.get("aciklama") || ""), departman: fd.get("departman") }; patchDosya(S.dosyaId, p); closeModal(); render(); },
   "sheet-create": f => {
@@ -1523,6 +1633,7 @@ document.addEventListener("change", e => {
     const v = c.tur === "tik" ? t.checked : deger(c, t.value); if (!esit(v, d.satirlar?.[t.dataset.r]?.[c.id])) { setCell(t.dataset.r, c.id, v); render(); }
   }
   else if (t.id === "imp-file" && t.files[0]) impOku(t.files[0]);
+  else if (t.hasAttribute("data-up") && t.files.length) { const fs = [...t.files]; t.value = ""; yukle(fs, t.dataset.up, t.dataset.alan); }
   else if (t.id === "json-file" && t.files[0]) { const f = t.files[0]; t.value = ""; f.text().then(x => { try { jsonYedekModal(JSON.parse(x)); } catch { toast("Bu dosya geçerli bir yedek değil."); } }); }
   else if (t.id === "imp-sheet") { S.imp.sheet = t.value; impGoster(); }
   else if (t.id === "col-tur") { const f = $("#col-sec"); if (f) f.hidden = t.value !== "secim"; }
@@ -1556,6 +1667,10 @@ document.addEventListener("paste", e => {
   if (S.view !== "dosya" || S.sh.editing || !editable() || !e.target.closest || !e.target.closest("#grid")) return;
   const t = e.clipboardData?.getData("text/plain"); if (!t || !S.sh.sel) return; e.preventDefault(); pasteGrid(t);
 });
+document.addEventListener("dragover", e => { const z = e.target.closest?.("[data-drop]"); if (z && editable()) { e.preventDefault(); z.classList.add("over"); } });
+document.addEventListener("dragleave", e => { const z = e.target.closest?.("[data-drop]"); if (z) z.classList.remove("over"); });
+document.addEventListener("drop", e => { const z = e.target.closest?.("[data-drop]"); if (!z) return; e.preventDefault(); z.classList.remove("over"); if (e.dataTransfer?.files?.length) yukle([...e.dataTransfer.files], z.dataset.drop, z.dataset.alan); });
+
 hashOku();
 render();
 init();

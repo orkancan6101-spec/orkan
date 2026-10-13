@@ -11,6 +11,9 @@ import {
   initializeFirestore, collection, doc, onSnapshot, query, orderBy, limit,
   getDoc, setDoc, deleteDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getStorage, ref as depoRef, uploadBytesResumable, getDownloadURL, deleteObject,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { firebaseConfig } from "./firebase-config.js";
 
 const KODLAR = {
@@ -23,6 +26,22 @@ const KODLAR = {
 };
 const hata = e => ({ code: KODLAR[e && e.code] || (e && e.code) || "bilinmiyor", message: (e && e.message) || String(e) });
 const sar = p => p.catch(e => { throw hata(e); });
+const DEPO_KODLARI = {
+  "storage/unauthorized": "izin",
+  "storage/unauthenticated": "izin",
+  "storage/bucket-not-found": "depo_yok",
+  "storage/project-not-found": "depo_yok",
+  "storage/no-default-bucket": "depo_yok",
+  "storage/quota-exceeded": "kota",
+  "storage/retry-limit-exceeded": "unavailable",
+  "storage/canceled": "iptal",
+};
+function depoHata(e) {
+  const c = e && e.code;
+  // Depo hiç oluşturulmamışsa Firebase çoğu zaman 404 ile "storage/unknown" döner.
+  const yok = c === "storage/unknown" && /404|not found/i.test(String((e && e.customData && e.customData.serverResponse) || e.message || ""));
+  return { code: yok ? "depo_yok" : (DEPO_KODLARI[c] || c || "bilinmiyor"), message: (e && e.message) || String(e) };
+}
 
 export async function baglan() {
   if (!firebaseConfig || !firebaseConfig.apiKey || String(firebaseConfig.apiKey).startsWith("BURAYA")) {
@@ -52,10 +71,30 @@ export async function baglan() {
     },
   });
 
+  const st = firebaseConfig.storageBucket ? getStorage(app) : null;
+  const depo = st ? {
+    // Dosyayı parça parça yükler; ilerleme 0–1 arası bildirilir. Tür ve boyut sınırı yok.
+    yukle(yol, dosya, ilerleme) {
+      return new Promise((tamam, hatali) => {
+        const meta = { contentType: dosya.type || "application/octet-stream", contentDisposition: "inline; filename*=UTF-8''" + encodeURIComponent(dosya.name) };
+        const is = uploadBytesResumable(depoRef(st, yol), dosya, meta);
+        is.on("state_changed",
+          s => ilerleme && ilerleme(s.totalBytes ? s.bytesTransferred / s.totalBytes : 0),
+          e => hatali(depoHata(e)),
+          async () => {
+            try { tamam({ url: await getDownloadURL(is.snapshot.ref), yol, boyut: is.snapshot.totalBytes, tur: meta.contentType }); }
+            catch (e) { hatali(depoHata(e)); }
+          });
+      });
+    },
+    sil: yol => deleteObject(depoRef(st, yol)).catch(e => { if (e && e.code === "storage/object-not-found") return; throw depoHata(e); }),
+  } : null;
+
   const saglayici = new GoogleAuthProvider();
   saglayici.setCustomParameters({ prompt: "select_account" });
   return {
     db: { doc: D, collection: p => C(p) },
+    depo,
     auth: {
       izle(cb) {
         return onAuthStateChanged(auth, u => cb(u ? {
