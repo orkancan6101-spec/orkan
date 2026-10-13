@@ -211,6 +211,7 @@ tabloları, görevler, belgeler ve ekip müsaitliği panelin kendi veritabanınd
 durur; Plan Panosu'ndan ayrıdır. Ayrıntılar `kulup/README.md`'de.
 
 `kulup-site/` klasöründe aynı panelin kendi adresi olan bağımsız site sürümü
-var: Render'da statik site + Firebase (Google ile giriş, Firestore). Okuma
+var: Vercel'de statik site + Firebase (Google ile giriş, Firestore; proje
+`esogu-otomotiv`). Okuma
 herkese açık, yazma yalnızca `ayarlar/yetkililer` listesindeki hesaplara.
 Kurulum adımları `kulup-site/KURULUM.md`'de.

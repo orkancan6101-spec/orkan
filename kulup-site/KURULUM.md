@@ -2,8 +2,9 @@
 
 Kendi adresi olan, ücretsiz ve 7/24 açık site. İki ücretsiz hizmet kullanır:
 
-- **Render (statik site):** sayfayı yayınlar. Statik siteler uyumaz.
-  Adres `isim.onrender.com` biçimindedir.
+- **Vercel (statik site):** sayfayı yayınlar. Ücretsiz Hobby planı yeterli;
+  site uyumaz, 7/24 açıktır. Adres `isim.vercel.app` biçimindedir. GitHub'daki
+  `main` dalına gelen her değişiklik siteyi kendiliğinden günceller.
 - **Firebase:** Google ile giriş ve veritabanı (Firestore). Ücretsiz planda
   günde 50.000 okuma ve 20.000 yazma hakkı var; kulüp kullanımı için yeterli.
 
@@ -33,22 +34,30 @@ Bu kurallar `firestore.rules` dosyasında, yani veritabanında uygulanır.
    **Uygulamayı kaydet**. Çıkan `firebaseConfig` değerlerini `firebase-config.js`
    dosyasına yaz. Bu değerler gizli değildir.
 
-## 2. Render'da yayın
+## 2. Vercel'de yayın
 
-1. https://render.com → **New → Static Site**.
-2. GitHub hesabını bağla ve bu repoyu seç.
+Önce sitenin kodu GitHub'da `main` dalında olmalı (Vercel yayını bu daldan yapar).
+
+1. https://vercel.com → **Sign Up → Continue with GitHub** (Hobby planı, ücretsiz).
+2. **Add New → Project** → bu repoyu bul → **Import**. Repo görünmüyorsa
+   "Adjust GitHub App Permissions" ile Vercel'e bu repoya erişim ver.
 3. Ayarlar:
-   - **Branch:** sitenin kodunun olduğu dal (tercihen `main`)
-   - **Build Command:** `echo hazir`
-   - **Publish Directory:** `kulup-site`
-4. **Create Static Site**. Birkaç dakika sonra adres hazır olur
-   (örneğin `esogu-otomotiv.onrender.com`). Dala her gönderilen değişiklik
-   siteyi kendiliğinden günceller.
+   - **Project Name:** `esogu-otomotiv` (adres `esogu-otomotiv.vercel.app` olur;
+     doluysa Vercel sonuna ek koyar)
+   - **Framework Preset:** `Other`
+   - **Root Directory:** **Edit** → `kulup-site` → Continue
+   - Build ve Output ayarlarına dokunma
+4. **Deploy**. Bir dakika içinde adres hazır olur.
 
-## 3. Girişi Render adresine aç
+Başka seçenekler (aynı dosyalarla çalışır): **Cloudflare Pages** (Workers & Pages →
+Create → Pages → Connect to Git; build komutu boş, çıktı klasörü `kulup-site`) ya da
+**Render Static Site** (Publish Directory `kulup-site`, Build Command `echo hazir`).
+
+## 3. Girişi site adresine aç
 
 Firebase konsolu → **Authentication → Ayarlar → Yetkili alan adları → Alan adı ekle**
-→ Render adresini yaz (örneğin `esogu-otomotiv.onrender.com`).
+→ sitenin adresini yaz (örneğin `esogu-otomotiv.vercel.app`). Bu adım yapılmazsa
+"Google ile giriş yap" hata verir.
 
 ## 4. İlk giriş
 
