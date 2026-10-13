@@ -11,7 +11,7 @@ import {
   initializeFirestore, collection, doc, onSnapshot, query, orderBy, limit,
   getDoc, setDoc, deleteDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js";
+import { firebaseConfig, siteAdresi } from "./firebase-config.js";
 
 const KODLAR = {
   "permission-denied": "izin",
@@ -34,14 +34,42 @@ function blobHata(e) {
   return { code: "bilinmiyor", message: m };
 }
 
+// Google ile girişte çıkabilecek hatalar, kullanıcının ne yapacağını söyleyen
+// cümlelerle.
+const GIRIS_HATALARI = {
+  "auth/unauthorized-domain": () => `Bu adresten giriş yapılamıyor. Siteyi ${siteAdresi || "asıl adresinden"} adresinden aç.`,
+  "auth/network-request-failed": "İnternet bağlantısı kurulamadı. Bağlantını kontrol edip tekrar dene.",
+  "auth/web-storage-unsupported": "Tarayıcı çerezleri engelliyor. Gizli sekme yerine normal Chrome ya da Safari sekmesinde aç.",
+  "auth/internal-error": "Tarayıcı girişi tamamlayamadı. Sayfayı yenileyip tekrar dene; olmazsa normal Chrome ya da Safari sekmesinde aç.",
+  "auth/too-many-requests": "Çok fazla deneme yapıldı. Birkaç dakika sonra tekrar dene.",
+  "auth/user-disabled": "Bu Google hesabı devre dışı bırakılmış.",
+  "auth/operation-not-allowed": "Google ile giriş Firebase'de kapalı: Firebase → Authentication → Sign-in method → Google → Enable.",
+};
+const girisHatasi = e => {
+  const h = GIRIS_HATALARI[e && e.code];
+  return { code: (e && e.code) || "bilinmiyor", message: h ? (typeof h === "function" ? h() : h) : ((e && e.message) || String(e)) };
+};
+// Instagram, Facebook, TikTok gibi uygulamaların kendi içindeki tarayıcıda Google
+// girişe izin vermez ("disallowed_useragent").
+const uygulamaIci = () => /FBAN|FBAV|Instagram|Line\/|Snapchat|TikTok|musical_ly|; wv\)/i.test(navigator.userAgent || "");
+
 export async function baglan() {
+  // Yanlış .vercel.app adresinden açıldıysa asıl adrese geç.
+  if (siteAdresi && typeof location !== "undefined") {
+    const ana = new URL(siteAdresi);
+    if (location.hostname !== ana.hostname && /\.vercel\.app$/i.test(location.hostname)) {
+      location.replace(ana.origin + location.pathname + location.search + location.hash);
+      return new Promise(() => { });
+    }
+  }
   if (!firebaseConfig || !firebaseConfig.apiKey || String(firebaseConfig.apiKey).startsWith("BURAYA")) {
     throw new Error("firebase-config.js henüz doldurulmadı.");
   }
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const fs = initializeFirestore(app, { ignoreUndefinedProperties: true });
-  getRedirectResult(auth).catch(() => { });
+  // Yönlendirmeli girişten dönüşte hata olduysa uygulama bunu gösterebilsin.
+  const donusHatasi = getRedirectResult(auth).then(() => null, e => girisHatasi(e));
 
   const belge = s => ({ id: s.id, exists: s.exists(), data: () => s.data() });
   const D = path => ({
@@ -111,14 +139,18 @@ export async function baglan() {
         } : null));
       },
       async giris() {
+        if (uygulamaIci()) throw { code: "uygulama_ici", message: "Google, uygulama içindeki tarayıcıda girişe izin vermiyor. Menüden (⋮ ya da ···) \"Tarayıcıda aç\" deyip Chrome ya da Safari'de dene." };
         try { await signInWithPopup(auth, saglayici); }
         catch (e) {
-          if (e && (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment")) await signInWithRedirect(auth, saglayici);
+          if (e && (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment")) {
+            try { await signInWithRedirect(auth, saglayici); } catch (e2) { throw girisHatasi(e2); }
+          }
           else if (e && (e.code === "auth/popup-closed-by-user" || e.code === "auth/cancelled-popup-request")) return;
-          else throw hata(e);
+          else throw girisHatasi(e);
         }
       },
       cikis: () => signOut(auth),
+      donusHatasi: () => donusHatasi,
     },
   };
 }

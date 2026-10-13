@@ -65,7 +65,7 @@ const TONRENK = { ok: "var(--ok)", warn: "var(--warn)", bad: "var(--bad)", info:
 /* ---------- durum ---------- */
 const S = {
   db: null, auth: null, kullanici: null, uid: null, sahip: false, sahipEposta: "", yetkililer: null, hata: "", gecmisHepsi: false, jsonYedek: null,
-  canWrite: null, readOnly: false, noDb: false, booted: false, uploading: 0,
+  canWrite: null, readOnly: false, noDb: false, booted: false, uploading: 0, girisHata: "",
   kisiler: new Map(), dosyalar: new Map(), gorevler: new Map(), belgeler: new Map(), musaitlik: new Map(), etkinlikler: new Map(), birimler: new Map(), hareketler: [], depo: null, yuklenen: null,
   loaded: {}, subErr: null,
   view: "genel", dosyaId: null,
@@ -257,8 +257,9 @@ async function init() {
   S.db.collection("hareketler").orderBy("zaman", "desc").limit(40).onSnapshot(s => {
     S.hareketler = s.docs.filter(d => d.exists).map(d => ({ id: d.id, ...d.data() })); S.loaded.hareketler = true; schedule();
   }, () => { });
+  if (S.auth.donusHatasi) S.auth.donusHatasi().then(h => { if (h) { S.girisHata = h.message; render(); } });
   S.auth.izle(async u => {
-    S.kullanici = u; S.uid = u ? u.uid : null;
+    S.kullanici = u; S.uid = u ? u.uid : null; if (u) S.girisHata = "";
     S.canWrite = false; S.sahip = false; S.sahipEposta = ""; S.yetkililer = null; S.readOnly = false;
     if (u) await yetkiKontrol();
     render();
@@ -469,6 +470,7 @@ function gorevlerimBlok() {
   </section>`;
 }
 function banner() {
+  if (S.girisHata && !S.kullanici) return `<div class="banner"><b>Giriş yapılamadı.</b> <span>${esc(S.girisHata)}</span><button class="linkbtn" data-act="giris-hata-kapat">Kapat</button></div>`;
   if (S.noDb && S.booted) return `<div class="banner"><b>Site veritabanına bağlanamadı.</b> ${/firebase-config/.test(S.hata) ? "Kurulum tamamlanmamış: firebase-config.js dosyası doldurulmalı." : "İnternet bağlantını kontrol edip sayfayı yenile."}</div>`;
   if (S.kullanici && S.canWrite === false) return `<div class="banner"><b>${esc(S.kullanici.eposta)}</b> hesabı yetkili listesinde değil. Siteyi görüntüleyebilirsin; değişiklik yapmak için site sahibinden eklenmeyi iste.</div>`;
   if (S.subErr === "revoked") return `<div class="banner"><b>Erişim değişti.</b> Güncel veriler için sayfayı yenileyin.</div>`;
@@ -1547,7 +1549,8 @@ const ACT = {
   "birim-ayar": el => birimModal(el.dataset.id),
   "birim-sil": el => { const id = el.dataset.id; const b = S.birimler.get(id); if (!b) return; const bk = clone(b); write("birimler", id, "delete"); logla("birim:" + id, `${b.ad} birimini kapattı`, ""); closeModal(); go("genel"); toast(`${b.ad} birimi silindi`, { label: "Geri al", fn: () => write("birimler", id, "set", bk) }); },
   "del-ac": () => { const a = $("#del-area"); if (a) a.hidden = false; },
-  "giris": () => { if (S.auth) S.auth.giris().catch(e => toast("Giriş yapılamadı: " + (e && e.message || e))); },
+  "giris": () => { if (!S.auth) return; S.girisHata = ""; render(); S.auth.giris().catch(e => { S.girisHata = String(e && e.message || e); render(); }); },
+  "giris-hata-kapat": () => { S.girisHata = ""; render(); },
   "cikis": () => { if (S.auth) S.auth.cikis(); },
   "etk": el => etkModal(el.dataset.id),
   "etk-new": () => etkModal(null),

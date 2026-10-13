@@ -211,7 +211,7 @@ tabloları, görevler, belgeler ve ekip müsaitliği panelin kendi veritabanınd
 durur; Plan Panosu'ndan ayrıdır. Ayrıntılar `kulup/README.md`'de.
 
 `kulup-site/` klasöründe aynı panelin kendi adresi olan bağımsız site sürümü
-var: Vercel'de statik site (`public/`) + Firebase (Google ile giriş, Firestore;
+var (https://orkan-kulup-site.vercel.app): Vercel'de statik site (`public/`) + Firebase (Google ile giriş, Firestore;
 proje `esogu-otomotiv`) + Vercel Blob (dosyalar, `api/`). Okuma
 herkese açık, yazma yalnızca `ayarlar/yetkililer` listesindeki hesaplara.
 Kurulum adımları `kulup-site/KURULUM.md`'de.

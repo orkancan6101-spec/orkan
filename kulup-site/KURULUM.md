@@ -50,14 +50,20 @@ Bu kurallar `firestore.rules` dosyasında, yani veritabanında uygulanır.
 4. **Deploy**. Bir dakika içinde adres hazır olur.
 
 Başka seçenekler (aynı dosyalarla çalışır): **Cloudflare Pages** (Workers & Pages →
-Create → Pages → Connect to Git; build komutu boş, çıktı klasörü `kulup-site`) ya da
-**Render Static Site** (Publish Directory `kulup-site`, Build Command `echo hazir`).
+Create → Pages → Connect to Git; build komutu boş, çıktı klasörü `kulup-site/public`) ya da
+**Render Static Site** (Publish Directory `kulup-site/public`, Build Command `echo hazir`).
+Bu ikisinde `api/` çalışmaz, yani dosya yükleme yalnızca Vercel'de olur.
 
 ## 3. Girişi site adresine aç
 
 Firebase konsolu → **Authentication → Ayarlar → Yetkili alan adları → Alan adı ekle**
-→ sitenin adresini yaz (örneğin `esogu-otomotiv.vercel.app`). Bu adım yapılmazsa
-"Google ile giriş yap" hata verir.
+→ sitenin adresini yaz (bu sitenin adresi `orkan-kulup-site.vercel.app`). Bu adım
+yapılmazsa "Google ile giriş yap" hata verir.
+
+Aynı adres `public/firebase-config.js` içindeki `siteAdresi` alanında da yazılı.
+Site başka bir `.vercel.app` adresinden açılırsa (örneğin Vercel'deki **Visit**
+düğmesinin açtığı dağıtım adresi) ziyaretçiyi bu adrese yönlendirir. Adres
+değişirse ikisini birlikte güncelle.
 
 ## 4. İlk giriş
 
