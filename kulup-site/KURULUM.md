@@ -68,39 +68,42 @@ Firebase konsolu → **Authentication → Ayarlar → Yetkili alan adları → A
 3. Düzenleyebilecek kişilerin Gmail adreslerini ekle. Bu kişiler siteye kendi
    hesaplarıyla girdiğinde düzenleme açılır.
 
-## 5. Dosya yükleme (Firebase Storage)
+## 5. Dosya yükleme (Vercel Blob, kartsız)
 
-Belgeler ve Tablolar sekmelerine bilgisayardan dosya yüklemek için gerekir.
-Sitede tür ve boyut sınırı yoktur.
+Belgeler ve Tablolar sekmelerine bilgisayardan dosya yüklemek için. Sitede tür ve
+boyut sınırı yoktur; Vercel'in ücretsiz planında toplam yaklaşık 1 GB depolama ve
+ayda 10 GB indirme vardır. Sınır dolarsa ücret çıkmaz, yükleme durur.
 
-1. Firebase konsolunda sol alttaki plan adına (**Spark**) tıkla → **Blaze**
-   (kullandıkça öde) planına geç ve kart ekle. 5 GB'a kadar depolama ücretsizdir;
-   kulüp kullanımında ücret çıkması beklenmez. Aynı ekranda düşük bir bütçe
-   uyarısı (örneğin 1 $) kur.
-2. **Derleme → Storage → Başlayın** → konum olarak **US-CENTRAL1** seç (ücretsiz
-   kota ABD bölgelerinde geçerli) → üretim modu → Oluştur.
-3. Storage'da **Kurallar** sekmesini aç, `storage.rules` dosyasını yapıştır,
-   `SAHIBIN_GMAIL_ADRESI` yerine site sahibinin Gmail adresini yaz, **Yayınla**.
-   Firebase, kuralların Firestore'u okuması için izin isterse onayla.
+1. Vercel'de projeyi aç → üstte **Storage** → **Create Database** → **Blob**.
+2. Ad: `esogu-otomotiv-dosyalar`. Erişim sorulursa **Public** seç → **Create**.
+3. **Connect to Project** ile bu projeye bağla (bütün ortamlar işaretli kalsın).
+   Bu adım projeye `BLOB_READ_WRITE_TOKEN` değişkenini ekler.
+4. **Deployments** → en üstteki yayın → **⋯** → **Redeploy**. Değişken ancak
+   yeni yayında devreye girer.
 
-Storage açılmadan yükleme denenirse site "Dosya yükleme henüz açılmadı" uyarısı verir;
-Drive linki eklemek her zaman çalışır.
+Nasıl çalışır: tarayıcı `/api/yukle` fonksiyonundan yükleme izni ister; fonksiyon
+kişinin Firebase jetonuyla `ayarlar/yetkililer` belgesini okumayı dener. Firestore
+kuralları bu belgeyi yalnızca yetkililere okuttuğu için okuma başarılıysa izin
+verilir. Dosya fonksiyondan geçmez, tarayıcıdan doğrudan depoya gider. Silme
+`/api/sil` ile aynı kontrolden geçer.
 
 ## Yedek
 
 Yetkililer sayfasındaki **Tüm veriyi yedekle (JSON)** birimleri, kişileri, görevleri,
 etkinlikleri, tabloları ve belge kayıtlarını tek dosyaya indirir (yüklenen dosyaların
-kendisi Storage'da kalır);
+kendisi Vercel Blob'da kalır);
 **Yedekten geri yükle** aynı dosyayı geri yazar. Tablolar ayrıca Excel olarak indirilebilir.
 
 ## Dosyalar
 
 | Dosya | Ne işe yarar |
 |---|---|
-| `index.html` | Sayfa ve görünüm |
-| `app.js` | Uygulama: departmanlar, görevler, etkinlikler, tablolar, müsaitlik |
-| `veri.js` | Firebase bağlantısı (giriş ve veritabanı) |
-| `firebase-config.js` | Firebase proje ayarları |
+| `public/index.html` | Sayfa ve görünüm |
+| `public/app.js` | Uygulama: birimler, görevler, etkinlikler, tablolar, belgeler, müsaitlik |
+| `public/veri.js` | Firebase bağlantısı (giriş, veritabanı) ve dosya yükleme |
+| `public/firebase-config.js` | Firebase proje ayarları |
+| `public/blob-client.js` | Vercel Blob tarayıcı istemcisi (`@vercel/blob` 2.8.0, derlenmiş) |
+| `public/ilk-ekip.json` | Başlangıç ekip listesi |
+| `api/yukle.js`, `api/sil.js` | Yükleme izni ve silme (yalnızca yetkililer) |
+| `package.json`, `vercel.json` | Vercel ayarı: `public/` yayınlanır, `api/` fonksiyon olur |
 | `firestore.rules` | Veritabanında kim okur, kim yazar |
-| `storage.rules` | Dosya deposunda kim okur, kim yükler |
-| `ilk-ekip.json` | Başlangıç ekip listesi |

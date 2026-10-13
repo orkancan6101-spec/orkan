@@ -1078,9 +1078,9 @@ function belgeModal(id) {
 }
 async function belgeSil(id) {
   const b = S.belgeler.get(id); if (!b) return;
-  if (b.tur === "dosya" && b.yol && S.depo) {
-    try { await S.depo.sil(b.yol); }
-    catch (e) { if (e && e.code !== "depo_yok") { toast(e.code === "izin" ? "Dosyayı silme izni yok." : "Dosya silinemedi: " + (e.message || e.code)); return; } }
+  if (b.tur === "dosya" && b.url && S.depo) {
+    try { await S.depo.sil(b.url); }
+    catch (e) { toast(e && e.code === "izin" ? "Dosyayı silme izni yok." : "Dosya silinemedi: " + ((e && (e.message || e.code)) || e)); return; }
   }
   write("belgeler", id, "delete"); logla("belge:" + id, `${b.ad} belgesini sildi`, b.departman); closeModal(); toast("Belge silindi");
 }
@@ -1411,11 +1411,11 @@ function yuklemeHTML() {
 }
 function depoMesaj(e, ad) {
   const c = e && e.code;
-  if (c === "depo_yok") return "Dosya yükleme henüz açılmadı: Firebase'de Storage kurulmalı (KURULUM.md, 5. adım).";
-  if (c === "izin") return "Dosya yükleme izni yok. Yetkili hesapla giriş yaptığından emin ol; Storage kuralları da yayımlanmış olmalı.";
-  if (c === "kota") return "Dosya deposunun kotası doldu. Kullanılmayan dosyaları sil ya da Firebase planını kontrol et.";
+  if (c === "token" || c === "depo_yok") return "Yükleme izni alınamadı. Yetkili hesapla giriş yaptığından ve Vercel'de Blob deposunun projeye bağlandığından emin ol (KURULUM.md, 5. adım).";
+  if (c === "izin") return "Dosya yüklemek için yetkili hesapla giriş yap.";
+  if (c === "kota") return "Dosya deposu doldu (ücretsiz plan yaklaşık 1 GB). Kullanılmayan dosyaları sil.";
   if (c === "iptal") return `${ad} yüklemesi iptal edildi.`;
-  if (c === "unavailable") return "Dosya deposuna ulaşılamadı. Storage açılmamış olabilir ya da internet bağlantısı koptu.";
+  if (c === "unavailable") return "Dosya deposuna ulaşılamadı. İnternet bağlantını kontrol edip tekrar dene.";
   return `${ad} yüklenemedi: ${(e && e.message) || e}`;
 }
 async function yukle(files, dep, alan) {
@@ -1434,7 +1434,7 @@ async function yukle(files, dep, alan) {
         const bar = $("#yukleme .bar i"), yz = $("#yukleme-oran");
         if (bar) bar.style.width = Math.round(o * 100) + "%"; if (yz) yz.textContent = "%" + Math.round(o * 100);
       }, S.yuklemeKontrol);
-      write("belgeler", id, "set", { ad: f.name, departman: dep, alan: alan === "tablolar" ? "tablolar" : "belgeler", tur: "dosya", url: r.url, yol, boyut: r.boyut, contentType: r.tur, yukleyen: S.uid || "", yukleyenAd: S.kullanici?.ad || "", tarih: nowISO(), not: "" });
+      write("belgeler", id, "set", { ad: f.name, departman: dep, alan: alan === "tablolar" ? "tablolar" : "belgeler", tur: "dosya", depo: "vercel-blob", url: r.url, yol: r.yol || yol, boyut: r.boyut, contentType: r.tur, yukleyen: S.uid || "", yukleyenAd: S.kullanici?.ad || "", tarih: nowISO(), not: "" });
       logla("yukle:" + dep, `${DEP[dep]?.ad || ""} birimine dosya yükledi: ${f.name}`, dep); n++;
     } catch (e) { toast(depoMesaj(e, f.name)); if (e && ["depo_yok", "izin", "iptal", "unavailable"].includes(e.code)) break; }
   }

@@ -1,0 +1,9 @@
+{
+  "name": "esogu-otomotiv-site",
+  "private": true,
+  "type": "module",
+  "description": "ESOGÜ Otomotiv Kulübü sitesi: statik sayfa (public/) ve dosya yükleme fonksiyonları (api/).",
+  "dependencies": {
+    "@vercel/blob": "2.8.0"
+  }
+}

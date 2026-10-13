@@ -11,10 +11,6 @@ import {
   initializeFirestore, collection, doc, onSnapshot, query, orderBy, limit,
   getDoc, setDoc, deleteDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import {
-  getStorage, ref as depoRef, uploadBytesResumable, getDownloadURL, deleteObject,
-  setMaxUploadRetryTime, setMaxOperationRetryTime,
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { firebaseConfig } from "./firebase-config.js";
 
 const KODLAR = {
@@ -27,21 +23,15 @@ const KODLAR = {
 };
 const hata = e => ({ code: KODLAR[e && e.code] || (e && e.code) || "bilinmiyor", message: (e && e.message) || String(e) });
 const sar = p => p.catch(e => { throw hata(e); });
-const DEPO_KODLARI = {
-  "storage/unauthorized": "izin",
-  "storage/unauthenticated": "izin",
-  "storage/bucket-not-found": "depo_yok",
-  "storage/project-not-found": "depo_yok",
-  "storage/no-default-bucket": "depo_yok",
-  "storage/quota-exceeded": "kota",
-  "storage/retry-limit-exceeded": "unavailable",
-  "storage/canceled": "iptal",
-};
-function depoHata(e) {
-  const c = e && e.code;
-  // Depo hiç oluşturulmamışsa Firebase çoğu zaman 404 ile "storage/unknown" döner.
-  const yok = c === "storage/unknown" && /404|not found/i.test(String((e && e.customData && e.customData.serverResponse) || e.message || ""));
-  return { code: yok ? "depo_yok" : (DEPO_KODLARI[c] || c || "bilinmiyor"), message: (e && e.message) || String(e) };
+// Dosyalar Vercel Blob'da tutulur (ücretsiz planda ~1 GB). Yükleme izni /api/yukle
+// fonksiyonundan alınır; fonksiyon kişinin yetkili olduğunu Firestore kurallarına sorar.
+function blobHata(e) {
+  const m = String((e && e.message) || e || "");
+  if ((e && e.name === "AbortError") || /abort/i.test(m)) return { code: "iptal", message: m };
+  if (/client token|yetkisi yok|404|Failed to fetch.*api/i.test(m)) return { code: "token", message: m };
+  if (/Failed to fetch|network|NetworkError/i.test(m)) return { code: "unavailable", message: m };
+  if (/limit|quota|storage.*full|exceeded/i.test(m)) return { code: "kota", message: m };
+  return { code: "bilinmiyor", message: m };
 }
 
 export async function baglan() {
@@ -72,39 +62,39 @@ export async function baglan() {
     },
   });
 
-  const st = firebaseConfig.storageBucket ? getStorage(app) : null;
-  // Varsayılanda SDK ulaşamadığı depoya 10 dakika sessizce yeniden dener; kullanıcı %0'da bekler.
-  if (st) { setMaxUploadRetryTime(st, 20000); setMaxOperationRetryTime(st, 20000); }
-  let depoVar = false;
-  async function depoKontrol() {
-    // Depo hiç oluşturulmamışsa liste adresi 404 döner (tarayıcı yüklemesi ise CORS'a takılıp asılı kalır).
-    if (depoVar) return true;
-    try {
-      const r = await fetch(`https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(firebaseConfig.storageBucket)}/o?maxResults=1`);
-      depoVar = r.status !== 404;
-    } catch { return true; } // ağ hatasında kararı yüklemenin kendisine bırak
-    return depoVar;
-  }
-  const depo = st ? {
-    // Dosyayı parça parça yükler; ilerleme 0–1 arası bildirilir. Tür ve boyut sınırı yok.
-    // kontrol nesnesine iptal() eklenir.
-    yukle(yol, dosya, ilerleme, kontrol) {
-      return new Promise(async (tamam, hatali) => {
-        if (!(await depoKontrol())) { hatali({ code: "depo_yok", message: "Firebase Storage oluşturulmamış." }); return; }
-        const meta = { contentType: dosya.type || "application/octet-stream", contentDisposition: "inline; filename*=UTF-8''" + encodeURIComponent(dosya.name) };
-        const is = uploadBytesResumable(depoRef(st, yol), dosya, meta);
-        if (kontrol) kontrol.iptal = () => is.cancel();
-        is.on("state_changed",
-          s => ilerleme && ilerleme(s.totalBytes ? s.bytesTransferred / s.totalBytes : 0),
-          e => hatali(depoHata(e)),
-          async () => {
-            try { tamam({ url: await getDownloadURL(is.snapshot.ref), yol, boyut: is.snapshot.totalBytes, tur: meta.contentType }); }
-            catch (e) { hatali(depoHata(e)); }
-          });
-      });
+  const jeton = async () => {
+    if (!auth.currentUser) throw { code: "izin", message: "Giriş yapılmamış." };
+    return auth.currentUser.getIdToken();
+  };
+  const depo = {
+    // Dosya tarayıcıdan doğrudan Vercel Blob'a gider; ilerleme 0–1 arası bildirilir.
+    // Tür ve boyut sınırı yok. kontrol nesnesine iptal() eklenir.
+    async yukle(yol, dosya, ilerleme, kontrol) {
+      const token = await jeton();
+      const { upload } = await import("./blob-client.js");
+      const ac = new AbortController();
+      if (kontrol) kontrol.iptal = () => ac.abort();
+      try {
+        const b = await upload(yol, dosya, {
+          access: "public",
+          handleUploadUrl: "/api/yukle",
+          clientPayload: token,
+          multipart: dosya.size > 8 * 1048576,
+          contentType: dosya.type || undefined,
+          abortSignal: ac.signal,
+          onUploadProgress: e => ilerleme && ilerleme(((e && e.percentage) || 0) / 100),
+        });
+        return { url: b.url, yol: b.pathname, boyut: dosya.size, tur: b.contentType || dosya.type || "" };
+      } catch (e) { throw blobHata(e); }
     },
-    sil: yol => deleteObject(depoRef(st, yol)).catch(e => { if (e && e.code === "storage/object-not-found") return; throw depoHata(e); }),
-  } : null;
+    async sil(url) {
+      const r = await fetch("/api/sil", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url, token: await jeton() }) });
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        throw { code: r.status === 403 ? "izin" : "bilinmiyor", message: j.error || "HTTP " + r.status };
+      }
+    },
+  };
 
   const saglayici = new GoogleAuthProvider();
   saglayici.setCustomParameters({ prompt: "select_account" });
