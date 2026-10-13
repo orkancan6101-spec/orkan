@@ -755,13 +755,21 @@ function renderNav() {
     DEPTS.map(d => item(d.id, d.no, d.ad, d.k + "t", open(d.id))).join("") +
     `<div class="nav-sep"></div>` + item("musaitlik", "◷", "Müsaitlik") + item("ekip", "▤", "Yönetim şeması");
 }
-function benKisi() { if (!S.uid) return null; for (const [id, k] of S.kisiler) if (k.hesap === S.uid) return { id, ...k }; return null; }
+const LS = {
+  get(k) { try { return localStorage.getItem("kulup:" + k); } catch { return null; } },
+  set(k, v) { try { if (v == null) localStorage.removeItem("kulup:" + k); else localStorage.setItem("kulup:" + k, v); } catch { } },
+};
+function benKisi() {
+  if (S.uid) for (const [id, k] of S.kisiler) if (k.hesap === S.uid) return { id, ...k };
+  const yerel = LS.get("ben"); // salt okunur görüntüleyenler için seçim yalnızca bu tarayıcıda tutulur
+  return yerel && kisi(yerel) ? { id: yerel, ...kisi(yerel) } : null;
+}
 function renderMe() {
   const ed = editable(); const ben = benKisi();
   const acc = S.noDb ? `<span class="access"><i></i>Çevrimdışı</span>` : `<span class="access${ed ? " on" : ""}"><i></i>${ed ? "Düzenleme açık" : "Salt okunur"}</span>`;
   const who = S.me ? `<div class="me-row"><img src="${esc(S.me.avatarUrl)}" alt=""><div><b>${esc(ben?.ad || S.me.name || "Sen")}</b><small>${ben ? esc(ben.rol || SEVIYE[ben.seviye]) : (S.uid && ed ? "Ekipteki yerini seç" : "")}</small></div></div>` : "";
   $("#me").innerHTML = who + acc +
-    (S.uid && !ben && S.kisiler.size && ed ? `<button class="linkbtn" data-act="ben-sec">Ekipte ben kimim?</button>` : "") +
+    (!ben && S.kisiler.size ? `<button class="linkbtn" data-act="ben-sec">Ekipte ben kimim?</button>` : "") +
     (S.downloads && S.dosyalar.size ? `<button class="linkbtn" data-act="backup">Tüm tabloları Excel'e yedekle</button>` : "") +
     `<button class="linkbtn" data-act="help">Nasıl kullanılır?</button>`;
 }
@@ -870,7 +878,7 @@ function yaklasan(gun = 21) {
 }
 function gorevlerimBlok() {
   const ben = benKisi();
-  if (!ben) return `<div class="banner" style="margin-top:24px">${S.uid && editable() ? `<b>Sana atanan ve senin atadığın görevler</b> ekipteki yerini seçince burada görünür. <button class="linkbtn" data-act="ben-sec">Ekipteki yerimi seç</button>` : `<b>Görevlerim</b> bölümü, ekipteki yerini seçtiğinde açılır.`}</div>`;
+  if (!ben) return `<div class="banner" style="margin-top:24px"><b>Sana atanan ve senin atadığın görevler</b> ekipteki yerini seçince burada görünür. <button class="linkbtn" data-act="ben-sec">Ekipteki yerimi seç</button></div>`;
   const bana = gorevSirala(gorevlerOf().filter(g => g.sorumlu === ben.id && acik(g)));
   const benim = gorevSirala(gorevlerOf().filter(g => benAtadim(g, ben) && acik(g)));
   return `<section class="two" style="margin-top:28px">
@@ -881,7 +889,7 @@ function gorevlerimBlok() {
 function banner() {
   if (S.noDb && S.booted) return `<div class="banner"><b>Veriler açılamadı.</b> Paneli claude.ai'de oturum açarak görüntüleyin. Görevler ve tablolar oturum açınca yüklenir.</div>`;
   if (S.subErr === "revoked") return `<div class="banner"><b>Erişim değişti.</b> Güncel veriler için sayfayı yenileyin.</div>`;
-  if (S.canWrite === false || S.readOnly) return `<div class="banner"><b>Salt okunur görünüm.</b> Düzenlemek için panel sahibinden düzenleme yetkisi isteyin.</div>`;
+  if (S.canWrite === false || S.readOnly) return `<div class="banner"><b>Salt okunur görünüm.</b> Görevleri, tabloları ve belgeleri görebilirsin; değiştirmek için panel sahibinden düzenleme yetkisi iste.</div>`;
   return "";
 }
 function depCol(d) {
@@ -948,7 +956,7 @@ function tEkip(d) {
   else if (f === "bana" || f === "benim") kartlar = kartlar.filter(p => tasks.some(g => kartKey(g) === p.id));
   const c = (v, ad) => `<button class="gchip${f === v ? " on" : ""}" data-act="dfiltre" data-dep="${d.id}" data-f="${esc(v)}">${ad}</button>`;
   const filtre = `<div class="gchips">${c("hepsi", "Herkes")}${ben ? c("bana", "Bana atanan") + c("benim", "Benim atadıklarım") : ""}${uyeler.map(p => c("k:" + p.id, esc(p.ad))).join("")}</div>`;
-  const ust = `<div class="toolbar">${ed ? `<button class="btn" data-act="task-new" data-dep="${d.id}">+ Görev ata</button>` : ""}${!ben && S.uid && ed ? `<span class="faint">Bana atanan ve benim atadıklarım görünümleri için</span><button class="linkbtn" data-act="ben-sec">ekipteki yerini seç</button>` : ""}</div>`;
+  const ust = `<div class="toolbar">${ed ? `<button class="btn" data-act="task-new" data-dep="${d.id}">+ Görev ata</button>` : ""}${!ben && S.kisiler.size ? `<span class="faint">Bana atanan ve benim atadıklarım görünümleri için</span><button class="linkbtn" data-act="ben-sec">ekipteki yerini seç</button>` : ""}</div>`;
   let govde;
   if (!kartlar.length) govde = `<div class="empty"><h3>${f === "bana" ? "Bu departmanda sana atanmış görev yok" : f === "benim" ? "Bu departmanda senin atadığın görev yok" : "Bu departmanda henüz kimse yok"}</h3><p>${ed && f === "hepsi" ? "Yönetim şeması sayfasından kişi ekleyebilirsiniz." : ""}</p></div>`;
   else govde = `<div class="pcards">${kartlar.map(p => kisiKart(p, tasks.filter(g => kartKey(g) === p.id), d)).join("")}</div>`;
@@ -1636,7 +1644,7 @@ function kisiModal(id) {
     ${has ? miniGrid(id) + `<p class="mtext faint">${o.d} saat ders · ${o.m} saat müsait · ${o.x} saat meşgul${S.musaitlik.get(id)?.not ? " · " + esc(S.musaitlik.get(id).not) : ""}</p>` : `<p class="mtext faint" style="margin:0">Henüz girilmedi.</p>`}
     <div class="mact">
       ${ed ? `<button class="btn ghost sm" data-act="task-new" data-dep="${esc(k.departman)}" data-kisi="${esc(id)}">+ Görev ata</button><button class="btn ghost sm" data-act="m-kisi" data-id="${esc(id)}">Programı düzenle</button><button class="btn ghost sm" data-act="kisi-edit" data-id="${esc(id)}">Bilgileri düzenle</button>` : ""}
-      ${ed && S.uid && k.hesap !== S.uid && !ben ? `<button class="btn ghost sm" data-act="kisi-ben" data-id="${esc(id)}">Bu benim</button>` : ""}
+      ${!ben && !(k.hesap && k.hesap !== S.uid) ? `<button class="btn ghost sm" data-act="kisi-ben" data-id="${esc(id)}">Bu benim</button>` : ""}
       ${k.hesap && k.hesap === S.uid ? `<span class="faint">Bu kart senin hesabına bağlı.</span>` : ""}
       <span class="sp"></span><button class="btn" data-act="modal-close">Kapat</button>
     </div></div>`);
@@ -1659,14 +1667,14 @@ function kisiForm(id, dep) {
   </form>`);
 }
 function benSecModal() {
-  modal(`<h2>Ekipte ben kimim?</h2><p class="mtext">Kendi kartını seç. Böylece sana atanan ve senin atadığın görevler ayrı ayrı listelenir, atadığın görevlerde adın görünür.</p>
+  modal(`<h2>Ekipte ben kimim?</h2><p class="mtext">Kendi kartını seç. Böylece sana atanan ve senin atadığın görevler ayrı ayrı listelenir${editable() ? ", atadığın görevlerde adın görünür" : ". Düzenleme yetkin olmadığı için seçimin yalnızca bu tarayıcıda saklanır"}.</p>
     <div class="pickl">${kisilerSirali().map(p => `<button data-act="kisi-ben" data-id="${esc(p.id)}"${p.hesap && p.hesap !== S.uid ? " disabled" : ""}><b>${esc(p.ad)}</b><small>${esc(p.rol || SEVIYE[p.seviye])} · ${esc(DEP[p.departman]?.ad || "")}${p.hesap && p.hesap !== S.uid ? " · başka hesaba bağlı" : ""}</small></button>`).join("")}</div>
     <div class="mact"><span class="sp"></span><button class="btn ghost" data-act="modal-close">Vazgeç</button></div>`, { wide: true });
 }
 function helpModal() {
   modal(`<h2>Panel nasıl kullanılır?</h2>
   <h3 class="mh">Kim düzenleyebilir?</h3>
-  <p class="mtext">Paneli düzenleme yetkisiyle paylaştığınız kişiler. Panel sahibi, claude.ai'deki Paylaş menüsünden kişiyi e-postasıyla düzenleyebilir olarak ekler. Yalnızca görmesini istediklerinizi görüntüleyebilir olarak ekleyin; onlar tabloları, görevleri ve belgeleri okur ama değiştiremez. Sol alttaki işaret sizin durumunuzu gösterir.</p>
+  <p class="mtext">Yalnızca panel sahibi ve sahibin claude.ai'deki Paylaş menüsünden e-postayla <b>düzenleyebilir</b> olarak eklediği hesaplar. Bu kural sunucuda uygulanır: görüntüleme yetkisiyle giren biri görev atayamaz, tabloya yazamaz, belge yükleyemez ya da silemez. Sol alttaki işaret senin durumunu gösterir.</p>
   <h3 class="mh">Ekip ve görevler</h3>
   <p class="mtext">Her departmanın açılış sayfasında departmandaki herkesin kendi kartı var. Kartta o kişiye atanan görevler, kimin atadığı ve son tarihler görünür; herkes herkesi görür. Üstteki düğmelerle tek bir kişiye, sana atananlara ya da senin atadıklarına bakabilirsin. Görevin solundaki yuvarlak durumu değiştirir: boş yapılacak, yarım dolu devam ediyor, tikli bitti.</p>
   <h3 class="mh">Tablolar (Excel gibi)</h3>
@@ -1702,9 +1710,13 @@ const ACT = {
   "kisi-del": () => { const a = $("#del-area"); if (a) a.hidden = false; },
   "kisi-del-ok": el => { const id = el.dataset.id; const k = kisi(id); if (!k) return; const bk = clone(k); write("kisiler", id, "delete"); logla("kisi:" + id, `${k.ad} kişisini ekipten çıkardı`, k.departman); closeModal(); toast(`${k.ad} ekipten çıkarıldı`, { label: "Geri al", fn: () => write("kisiler", id, "set", bk) }); },
   "kisi-ben": el => {
-    const id = el.dataset.id; if (!S.uid) return;
-    for (const [kid, k] of S.kisiler) if (k.hesap === S.uid && kid !== id) write("kisiler", kid, "update", { hesap: "" });
-    write("kisiler", id, "update", { hesap: S.uid }); closeModal(); toast(`Kartın bağlandı: ${kisi(id)?.ad || ""}`);
+    const id = el.dataset.id; if (!kisi(id)) return;
+    LS.set("ben", id);
+    if (S.uid && editable()) {
+      for (const [kid, k] of S.kisiler) if (k.hesap === S.uid && kid !== id) write("kisiler", kid, "update", { hesap: "" });
+      write("kisiler", id, "update", { hesap: S.uid });
+    }
+    closeModal(); render(); toast(`Kartın seçildi: ${kisi(id)?.ad || ""}`);
   },
   "ben-sec": () => benSecModal(),
   "help": () => helpModal(),

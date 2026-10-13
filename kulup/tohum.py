@@ -18,8 +18,6 @@ KISILER = [
      "Sponsorluk stratejilerini belirler ve ana firmalarla üst düzey iletişimi kurar."),
     ("kerem-can", "Kerem Can", "kurumsal", "yardimci", "Başkan Yardımcısı",
      "Sponsorluk dosyalarını takip eder; sözleşme ve bütçe süreçlerini denetler."),
-    ("berika-sila-cetin", "Berika Sıla Çetin", "kurumsal", "ekip", "Sponsorluk Sorumlusu",
-     "Potansiyel sponsorları araştırır ve mail süreçlerini yürütür."),
     ("ahmet-sunar", "Ahmet Sunar", "kurumsal", "ekip", "Sponsor Teklif Sorumlusu",
      "Sponsorlara gidecek tanıtım dosyasını ve teklif paketlerini hazırlar; sponsor görüşmelerine katılır."),
     ("ertugrul-aktan", "Ertuğrul Aktan", "kurumsal", "ekip", "Sektörel İlişkiler Sorumlusu",

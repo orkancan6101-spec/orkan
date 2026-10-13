@@ -17,11 +17,16 @@ Panel hazır tablo ya da görev getirmez; hepsini kulüp ekler. Para, bütçe ve
 
 ## Yetki
 
-Düzenleme yetkisi claude.ai paylaşımından gelir. Panel sahibi Paylaş
-menüsünden kişileri e-postayla **düzenleyebilir** olarak ekler; yalnızca
-görmesi gerekenler **görüntüleyebilir** olur. Görüntüleyenler hiçbir şeyi
-değiştiremez (sunucu tarafında engellenir). Belge yükleme ve silme yalnızca
-düzenleyenlere açıktır.
+- Panel claude.ai'de barınır; 7/24 açıktır, bu oturuma ya da bir sunucuya bağlı değildir.
+- Veritabanı kuralı: `{path: "", read: "view", write: "admin"}`. Okuma: paneli
+  açabilen herkes. Yazma (görev, tablo, kişi, müsaitlik, hareket kaydı): yalnızca
+  panel sahibi ve Paylaş menüsünden **düzenleyebilir** (Editor) eklenen hesaplar.
+  Kural sunucuda uygulanır. Belge yükleme/silme de yalnızca bu hesaplara açıktır.
+- Kişisel hesapta (Pro/Max) dışarıdan davet edilen düzenleyenlerin yazma yetkisi,
+  panel aynı anda herkese açık linkle paylaşılırsa düşer. Düzenleyenler varken
+  herkese açık linki kapalı tutun; görecek herkesi e-postayla ekleyin.
+- Görüntüleyenler panele girmek için claude.ai'de oturum açmalıdır. "Ekipte ben
+  kimim?" seçimleri yalnızca kendi tarayıcılarında saklanır.
 
 ## Veri (panelin veritabanı)
 
