@@ -13,6 +13,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   getStorage, ref as depoRef, uploadBytesResumable, getDownloadURL, deleteObject,
+  setMaxUploadRetryTime, setMaxOperationRetryTime,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { firebaseConfig } from "./firebase-config.js";
 
@@ -72,12 +73,27 @@ export async function baglan() {
   });
 
   const st = firebaseConfig.storageBucket ? getStorage(app) : null;
+  // Varsayılanda SDK ulaşamadığı depoya 10 dakika sessizce yeniden dener; kullanıcı %0'da bekler.
+  if (st) { setMaxUploadRetryTime(st, 20000); setMaxOperationRetryTime(st, 20000); }
+  let depoVar = false;
+  async function depoKontrol() {
+    // Depo hiç oluşturulmamışsa liste adresi 404 döner (tarayıcı yüklemesi ise CORS'a takılıp asılı kalır).
+    if (depoVar) return true;
+    try {
+      const r = await fetch(`https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(firebaseConfig.storageBucket)}/o?maxResults=1`);
+      depoVar = r.status !== 404;
+    } catch { return true; } // ağ hatasında kararı yüklemenin kendisine bırak
+    return depoVar;
+  }
   const depo = st ? {
     // Dosyayı parça parça yükler; ilerleme 0–1 arası bildirilir. Tür ve boyut sınırı yok.
-    yukle(yol, dosya, ilerleme) {
-      return new Promise((tamam, hatali) => {
+    // kontrol nesnesine iptal() eklenir.
+    yukle(yol, dosya, ilerleme, kontrol) {
+      return new Promise(async (tamam, hatali) => {
+        if (!(await depoKontrol())) { hatali({ code: "depo_yok", message: "Firebase Storage oluşturulmamış." }); return; }
         const meta = { contentType: dosya.type || "application/octet-stream", contentDisposition: "inline; filename*=UTF-8''" + encodeURIComponent(dosya.name) };
         const is = uploadBytesResumable(depoRef(st, yol), dosya, meta);
+        if (kontrol) kontrol.iptal = () => is.cancel();
         is.on("state_changed",
           s => ilerleme && ilerleme(s.totalBytes ? s.bytesTransferred / s.totalBytes : 0),
           e => hatali(depoHata(e)),

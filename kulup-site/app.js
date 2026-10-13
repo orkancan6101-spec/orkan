@@ -1407,7 +1407,7 @@ function belgelerOf(dep, alan) {
 }
 function yuklemeHTML() {
   const y = S.yuklenen; if (!y) return "";
-  return `<div class="yukleme" id="yukleme" role="status"><span>Yükleniyor${y.kalan > 1 ? ` (${y.kalan} dosya)` : ""}:</span><b>${esc(y.ad)}</b><div class="bar"><i style="width:${Math.round(y.oran * 100)}%"></i></div><span id="yukleme-oran">%${Math.round(y.oran * 100)}</span></div>`;
+  return `<div class="yukleme" id="yukleme" role="status"><span>Yükleniyor${y.kalan > 1 ? ` (${y.kalan} dosya)` : ""}:</span><b>${esc(y.ad)}</b><div class="bar"><i style="width:${Math.round(y.oran * 100)}%"></i></div><span id="yukleme-oran">%${Math.round(y.oran * 100)}</span><button class="btn ghost sm" data-act="yukleme-iptal">İptal</button></div>`;
 }
 function depoMesaj(e, ad) {
   const c = e && e.code;
@@ -1415,6 +1415,7 @@ function depoMesaj(e, ad) {
   if (c === "izin") return "Dosya yükleme izni yok. Yetkili hesapla giriş yaptığından emin ol; Storage kuralları da yayımlanmış olmalı.";
   if (c === "kota") return "Dosya deposunun kotası doldu. Kullanılmayan dosyaları sil ya da Firebase planını kontrol et.";
   if (c === "iptal") return `${ad} yüklemesi iptal edildi.`;
+  if (c === "unavailable") return "Dosya deposuna ulaşılamadı. Storage açılmamış olabilir ya da internet bağlantısı koptu.";
   return `${ad} yüklenemedi: ${(e && e.message) || e}`;
 }
 async function yukle(files, dep, alan) {
@@ -1427,16 +1428,17 @@ async function yukle(files, dep, alan) {
     const f = files[i]; const id = newId("b"); const yol = `belgeler/${dep}/${id}-${dosyaAdiTemiz(f.name)}`;
     S.yuklenen = { ad: f.name, oran: 0, kalan: files.length - i }; render();
     try {
+      S.yuklemeKontrol = {};
       const r = await S.depo.yukle(yol, f, o => {
         S.yuklenen.oran = o;
         const bar = $("#yukleme .bar i"), yz = $("#yukleme-oran");
         if (bar) bar.style.width = Math.round(o * 100) + "%"; if (yz) yz.textContent = "%" + Math.round(o * 100);
-      });
+      }, S.yuklemeKontrol);
       write("belgeler", id, "set", { ad: f.name, departman: dep, alan: alan === "tablolar" ? "tablolar" : "belgeler", tur: "dosya", url: r.url, yol, boyut: r.boyut, contentType: r.tur, yukleyen: S.uid || "", yukleyenAd: S.kullanici?.ad || "", tarih: nowISO(), not: "" });
       logla("yukle:" + dep, `${DEP[dep]?.ad || ""} birimine dosya yükledi: ${f.name}`, dep); n++;
-    } catch (e) { toast(depoMesaj(e, f.name)); if (e && (e.code === "depo_yok" || e.code === "izin")) break; }
+    } catch (e) { toast(depoMesaj(e, f.name)); if (e && ["depo_yok", "izin", "iptal", "unavailable"].includes(e.code)) break; }
   }
-  S.yuklenen = null; render();
+  S.yuklenen = null; S.yuklemeKontrol = null; render();
   if (n) toast(n === 1 ? `${files[0].name} yüklendi` : `${n} dosya yüklendi`);
 }
 function ekKart(id, b) {
@@ -1541,6 +1543,7 @@ const ACT = {
   "m-temizle": () => { const kid = S.m.kisi; mYaz(kid, GUNLER.map(() => ".".repeat(SAATN))); render(); toast("Program temizlendi"); },
   "modal-close": () => closeModal(),
   "birim-new": () => birimModal(null),
+  "yukleme-iptal": () => { if (S.yuklemeKontrol && S.yuklemeKontrol.iptal) S.yuklemeKontrol.iptal(); },
   "birim-ayar": el => birimModal(el.dataset.id),
   "birim-sil": el => { const id = el.dataset.id; const b = S.birimler.get(id); if (!b) return; const bk = clone(b); write("birimler", id, "delete"); logla("birim:" + id, `${b.ad} birimini kapattı`, ""); closeModal(); go("genel"); toast(`${b.ad} birimi silindi`, { label: "Geri al", fn: () => write("birimler", id, "set", bk) }); },
   "del-ac": () => { const a = $("#del-area"); if (a) a.hidden = false; },
