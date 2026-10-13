@@ -1,0 +1,130 @@
+{
+ "kisiler": {
+  "atahan-akcin": {
+   "ad": "Atahan Akçin",
+   "departman": "kurumsal",
+   "seviye": "baskan",
+   "rol": "Departman Başkanı",
+   "aciklama": "Sponsorluk stratejilerini belirler ve ana firmalarla üst düzey iletişimi kurar.",
+   "sira": 1,
+   "hesap": ""
+  },
+  "kerem-can": {
+   "ad": "Kerem Can",
+   "departman": "kurumsal",
+   "seviye": "yardimci",
+   "rol": "Başkan Yardımcısı",
+   "aciklama": "Sponsorluk dosyalarını takip eder; sözleşme ve bütçe süreçlerini denetler.",
+   "sira": 2,
+   "hesap": ""
+  },
+  "ahmet-sunar": {
+   "ad": "Ahmet Sunar",
+   "departman": "kurumsal",
+   "seviye": "ekip",
+   "rol": "Sponsor Teklif Sorumlusu",
+   "aciklama": "Sponsorlara gidecek tanıtım dosyasını ve teklif paketlerini hazırlar; sponsor görüşmelerine katılır.",
+   "sira": 3,
+   "hesap": ""
+  },
+  "ertugrul-aktan": {
+   "ad": "Ertuğrul Aktan",
+   "departman": "kurumsal",
+   "seviye": "ekip",
+   "rol": "Sektörel İlişkiler Sorumlusu",
+   "aciklama": "Otomotiv firmaları, fabrikalar ve konuşmacılarla ilk teması kurar.",
+   "sira": 4,
+   "hesap": ""
+  },
+  "enes-yilmaz": {
+   "ad": "Enes Yılmaz",
+   "departman": "kurumsal",
+   "seviye": "ekip",
+   "rol": "Dış İlişkiler Sorumlusu",
+   "aciklama": "Diğer üniversite kulüpleri, belediyeler ve odalarla (MMO vb.) iletişimi sağlar.",
+   "sira": 5,
+   "hesap": ""
+  },
+  "ayca-yazgan": {
+   "ad": "Ayça Yazgan",
+   "departman": "kurumsal",
+   "seviye": "ekip",
+   "rol": "Mezun İlişkileri Sorumlusu",
+   "aciklama": "Sektörde çalışan ESOGÜ mezunlarına ulaşır; onları konuşmacı, mentor ve sponsor bağlantısı olarak kulübe kazandırır.",
+   "sira": 6,
+   "hesap": ""
+  },
+  "elif-garipoglu": {
+   "ad": "Elif Garipoğlu",
+   "departman": "iletisim",
+   "seviye": "baskan",
+   "rol": "Departman Başkanı",
+   "aciklama": "Kulübün marka kimliğini, paylaşım takvimini ve iletişim dilini yönetir.",
+   "sira": 7,
+   "hesap": ""
+  },
+  "yagmur-ilci": {
+   "ad": "Yağmur İlci",
+   "departman": "iletisim",
+   "seviye": "yardimci",
+   "rol": "Başkan Yardımcısı",
+   "aciklama": "Görsel ve yazılı içeriklerin kalitesini denetler, başkana destek olur.",
+   "sira": 8,
+   "hesap": ""
+  },
+  "nisasu-oktay": {
+   "ad": "Nisasu Oktay",
+   "departman": "iletisim",
+   "seviye": "ekip",
+   "rol": "Görsel Tasarım ve Video Editörü",
+   "aciklama": "Afiş, post, reels ve etkinlik kurgularını hazırlar.",
+   "sira": 9,
+   "hesap": ""
+  },
+  "cem-cihan-kozali": {
+   "ad": "Cem Cihan Kozalı",
+   "departman": "organizasyon",
+   "seviye": "baskan",
+   "rol": "Departman Başkanı",
+   "aciklama": "Yıllık etkinlik takvimini planlar ve yönetir.",
+   "sira": 10,
+   "hesap": ""
+  },
+  "busra-cakci": {
+   "ad": "Büşra Çakcı",
+   "departman": "organizasyon",
+   "seviye": "yardimci",
+   "rol": "Başkan Yardımcısı",
+   "aciklama": "Etkinlik izinlerini, rektörlük/fakülte iletişimini ve bütçe akışını takip eder.",
+   "sira": 11,
+   "hesap": ""
+  },
+  "sevval-can": {
+   "ad": "Şevval Can",
+   "departman": "organizasyon",
+   "seviye": "ekip",
+   "rol": "Üye İlişkileri Sorumlusu",
+   "aciklama": "Etkinlik günü görevli üyeleri koordine eder; kayıt masası, salon, ulaşım ve ses/ışık gibi saha işlerini yürütür.",
+   "sira": 12,
+   "hesap": ""
+  },
+  "mehmet-emin-alan": {
+   "ad": "Mehmet Emin Alan",
+   "departman": "erasmus",
+   "seviye": "baskan",
+   "rol": "Departman Başkanı",
+   "aciklama": "AB projelerini ve Gençlik Değişimleri'ni takip eder.",
+   "sira": 13,
+   "hesap": ""
+  },
+  "kerem-omer-sengoz": {
+   "ad": "Kerem Ömer Şengöz",
+   "departman": "erasmus",
+   "seviye": "ekip",
+   "rol": "Etkinlik ve Paylaşım Sorumlusu",
+   "aciklama": "Webinar takvimini düzenler ve organizasyonuna destek olur; başkanın takip ettiği projeleri departman gruplarında yayar.",
+   "sira": 14,
+   "hesap": ""
+  }
+ }
+}

@@ -209,3 +209,8 @@ yeniden yayımla (Artifact, url=PANO).
 `kulup/index.html`, adres `kulup/ayarlar.json` → `panel_url`). Departman
 tabloları, görevler, belgeler ve ekip müsaitliği panelin kendi veritabanında
 durur; Plan Panosu'ndan ayrıdır. Ayrıntılar `kulup/README.md`'de.
+
+`kulup-site/` klasöründe aynı panelin kendi adresi olan bağımsız site sürümü
+var: Render'da statik site + Firebase (Google ile giriş, Firestore). Okuma
+herkese açık, yazma yalnızca `ayarlar/yetkililer` listesindeki hesaplara.
+Kurulum adımları `kulup-site/KURULUM.md`'de.

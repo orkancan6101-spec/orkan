@@ -1,0 +1,36 @@
+rules_version = '2';
+
+// ESOGÜ Otomotiv Kulübü sitesi · Firestore güvenlik kuralları
+// Okuma: herkes (linke tıklayan herkes siteyi görür).
+// Yazma: yalnızca site sahibi ve ayarlar/yetkililer belgesindeki e-postalar.
+// Yetkili listesini yalnızca site sahibi değiştirebilir.
+// Kurulumda SAHIBIN_GMAIL_ADRESI yerine site sahibinin Gmail adresini yazın.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function girisli() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function sahip() {
+      return girisli() && request.auth.token.email.lower() == 'SAHIBIN_GMAIL_ADRESI';
+    }
+    function yetkili() {
+      return sahip() || (
+        girisli()
+        && exists(/databases/$(database)/documents/ayarlar/yetkililer)
+        && request.auth.token.email.lower() in get(/databases/$(database)/documents/ayarlar/yetkililer).data.emails
+      );
+    }
+
+    match /ayarlar/yetkililer {
+      allow read: if yetkili();
+      allow write: if sahip();
+    }
+
+    match /{koleksiyon}/{belgeId} {
+      allow read: if koleksiyon != 'ayarlar';
+      allow write: if koleksiyon != 'ayarlar' && yetkili();
+    }
+  }
+}
