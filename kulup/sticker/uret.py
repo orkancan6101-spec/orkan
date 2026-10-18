@@ -35,6 +35,7 @@ TEAL = "#00586A"
 TEAL_KOYU = "#003C48"
 TEAL_PARLAK = "#19B4C8"
 GUMUS = "#B3B3B3"
+KIRMIZI = "#E63946"  # devir saatinin kırmızı bölgesi
 
 
 # ---------------------------------------------------------------- yazı tipi
@@ -263,6 +264,91 @@ def yildiz(cx, cy, r, renk):
     return f'<polygon points="{" ".join(noktalar)}" fill="{renk}"/>'
 
 
+# Spor araba yan profili: 1000 x 340 kutu, sağa bakıyor, teker altı y=318
+ARABA_GOVDE = (
+    "M 30 226 C 24 204 28 182 46 172 L 96 160 C 104 152 112 148 124 150 "
+    "C 200 150 250 140 300 124 C 380 92 450 76 540 74 C 610 74 650 84 690 104 "
+    "C 730 124 760 142 800 152 C 870 162 940 172 970 186 C 990 198 992 220 980 234 "
+    "L 902 240 A 82 82 0 0 0 738 240 L 332 240 A 82 82 0 0 0 168 240 L 40 238 Z"
+)
+ARABA_CAM = (
+    "M 336 126 C 400 100 460 88 540 86 C 600 86 640 94 672 108 L 716 138 "
+    "C 600 140 460 138 336 126 Z"
+)
+
+
+def _teker(cx, cy):
+    p = [f'<circle cx="{cx}" cy="{cy}" r="70" fill="#0A1316"/>',
+         f'<circle cx="{cx}" cy="{cy}" r="50" fill="#C9CED0"/>',
+         f'<circle cx="{cx}" cy="{cy}" r="40" fill="#4E5A5E"/>']
+    for i in range(5):
+        a = math.radians(-90 + i * 72)
+        p.append(f'<line x1="{cx}" y1="{cy}" x2="{cx + 44 * math.cos(a):.1f}" y2="{cy + 44 * math.sin(a):.1f}" '
+                 f'stroke="#C9CED0" stroke-width="13" stroke-linecap="round"/>')
+    p.append(f'<circle cx="{cx}" cy="{cy}" r="11" fill="#C9CED0"/>')
+    return "".join(p)
+
+
+def araba(x, zemin_y, genislik):
+    """Teker altı zemin_y'de duran spor araba silueti."""
+    s = genislik / 1000
+    return (
+        f'<g transform="translate({x} {zemin_y - 318 * s:.2f}) scale({s:.5f})">'
+        '<ellipse cx="520" cy="318" rx="490" ry="16" fill="#000" opacity="0.7" filter="url(#golgeKucuk)"/>'
+        f'<path d="{ARABA_GOVDE}" fill="url(#krom)"/>'
+        f'<path d="{ARABA_CAM}" fill="{KOYU}"/>'
+        '<line x1="604" y1="86" x2="610" y2="140" stroke="#E9EEF0" stroke-width="12"/>'
+        f'<path d="M 120 184 C 400 178 700 176 950 186" stroke="{TEAL_PARLAK}" stroke-width="9" fill="none"/>'
+        f'<path d="M 952 197 L 978 201" stroke="{TEAL_PARLAK}" stroke-width="8" stroke-linecap="round"/>'
+        f"{_teker(250, 248)}{_teker(820, 248)}</g>"
+    )
+
+
+def devir_saati(cx, cy, r, yazi=None, rakam=True):
+    """Logonun çevresine devir saati: 0-8 bin, 6.5 sonrası kırmızı bölge."""
+    def nokta(v, rr):
+        a = math.radians(135 + v / 8 * 270)
+        return cx + rr * math.cos(a), cy + rr * math.sin(a)
+
+    def yay(v0, v1, rr):
+        (x0, y0), (x1, y1) = nokta(v0, rr), nokta(v1, rr)
+        buyuk = 1 if (v1 - v0) / 8 * 270 > 180 else 0
+        return f"M {x0:.2f} {y0:.2f} A {rr} {rr} 0 {buyuk} 1 {x1:.2f} {y1:.2f}"
+
+    p = [f'<path d="{yay(0, 8, r + 8)}" stroke="{GUMUS}" stroke-opacity="0.55" stroke-width="3" fill="none"/>',
+         f'<path d="{yay(6.5, 8, r + 18)}" stroke="{KIRMIZI}" stroke-width="12" fill="none"/>']
+    for i in range(17):
+        v = i / 2
+        ana = i % 2 == 0
+        (x0, y0), (x1, y1) = nokta(v, r + 12), nokta(v, r + (44 if ana else 30))
+        renk = KIRMIZI if v >= 6.5 else "#E9EEF0"
+        p.append(f'<line x1="{x0:.2f}" y1="{y0:.2f}" x2="{x1:.2f}" y2="{y1:.2f}" stroke="{renk}" '
+                 f'stroke-width="{7 if ana else 4}" stroke-linecap="round"/>')
+        if ana and rakam and yazi:
+            tx, ty = nokta(v, r + 70)
+            boyut = 40
+            p.append(yazi.satir(str(int(v)), tx, ty + boyut * yazi.kep / yazi.em / 2, boyut, hiza="orta",
+                                fill=KIRMIZI if v >= 7 else "#9FB3B9"))
+    return "".join(p)
+
+
+def lastik_disi(cx, cy, r_ic, r_dis, adet=64):
+    """Ok yönlü (V) lastik dişi halkası."""
+    p = [f'<circle cx="{cx}" cy="{cy}" r="{(r_ic + r_dis) / 2}" fill="none" stroke="#141E21" stroke-width="{r_dis - r_ic}"/>']
+    adim = 360 / adet
+    r_orta = (r_ic + r_dis) / 2
+    for i in range(adet):
+        a = i * adim
+        def k(aci, rr):
+            t = math.radians(aci)
+            return f"{cx + rr * math.cos(t):.2f},{cy + rr * math.sin(t):.2f}"
+        w, kay = adim * 0.62, adim * 0.35
+        noktalar = [k(a, r_ic + 3), k(a + w, r_ic + 3), k(a + w + kay, r_orta), k(a + w, r_dis - 3),
+                    k(a, r_dis - 3), k(a + kay, r_orta)]
+        p.append(f'<polygon points="{" ".join(noktalar)}" fill="#34474D"/>')
+    return "".join(p)
+
+
 def svg(gen_mm, yuk_mm, vb_w, vb_h, govde):
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{gen_mm}mm" height="{yuk_mm}mm" '
@@ -293,39 +379,52 @@ def yatay():
         '<mask id="damaMaske"><rect width="1500" height="800" fill="url(#damaSol)"/></mask>'
     )
     g.append(f'<rect width="{W}" height="{H}" fill="url(#dama)" mask="url(#damaMaske)"/>')
-    # logo
-    g.append(logo(370, 375, 265))
+    # logo + devir saati
+    lx, ly, lr = 345, 345, 222
+    g.append(logo(lx, ly, lr))
+    g.append(devir_saati(lx, ly, lr, yazi=orta))
     # yazılar
-    x0, x1 = 745, 1420
+    x0, x1 = 715, 1430
     gen = x1 - x0
     g.append(
-        ince.satir(METIN["universite"], x0 + 4, 158, 37,
-                   aralik=_aralik(ince, METIN["universite"], 37, gen - 4), fill="#9FB3B9")
+        ince.satir(METIN["universite"], x0 + 4, 118, 36,
+                   aralik=_aralik(ince, METIN["universite"], 36, gen - 4), fill="#9FB3B9")
     )
-    ust_boyut = gen / (kalin.genislik(METIN["ust"], 1000) / 1000)
+    ust_boyut, ust_y, alt_y = 164, 290, 462
+    ust_ar = _aralik(kalin, METIN["ust"], ust_boyut, gen)
+    alt_ar = _aralik(kalin, METIN["alt"], ust_boyut, gen)
     g.append(f'<g fill="#000" opacity="0.45" transform="translate(6 8)">'
-             f'{kalin.satir(METIN["ust"], x0, 352, ust_boyut)}'
-             f'{kalin.satir(METIN["alt"], x0, 538, ust_boyut, aralik=_aralik(kalin, METIN["alt"], ust_boyut, gen))}</g>')
-    g.append(kalin.satir(METIN["ust"], x0, 352, ust_boyut, fill="url(#krom)"))
-    g.append(
-        kalin.satir(METIN["alt"], x0, 538, ust_boyut,
-                    aralik=_aralik(kalin, METIN["alt"], ust_boyut, gen), fill="url(#tealYazi)")
-    )
+             f'{kalin.satir(METIN["ust"], x0, ust_y, ust_boyut, aralik=ust_ar)}'
+             f'{kalin.satir(METIN["alt"], x0, alt_y, ust_boyut, aralik=alt_ar)}</g>')
+    g.append(kalin.satir(METIN["ust"], x0, ust_y, ust_boyut, aralik=ust_ar, fill="url(#krom)"))
+    g.append(kalin.satir(METIN["alt"], x0, alt_y, ust_boyut, aralik=alt_ar, fill="url(#tealYazi)"))
     # RESMİ SPONSOR rozeti: dama | teal
-    ry, rh, egim, dama_w = 588, 92, 18, 64
+    ry, rh, egim, dama_w = 498, 80, 16, 60
     g.append(f'<path d="M {x0 + egim} {ry} L {x0 + dama_w + egim} {ry} L {x0 + dama_w} {ry + rh} L {x0} {ry + rh} Z" fill="url(#damaKucuk)"/>')
     g.append(f'<path d="M {x0 + dama_w + 10 + egim} {ry} L {x1 + egim} {ry} L {x1} {ry + rh} L {x0 + dama_w + 10} {ry + rh} Z" fill="url(#tealYazi)"/>')
     rozet_x0, rozet_x1 = x0 + dama_w + 10 + egim / 2, x1 + egim / 2
     rozet_aralik = 10
-    rozet_boyut = (rozet_x1 - rozet_x0 - 80 - rozet_aralik * (len(METIN["rozet"]) - 1)) / (orta.genislik(METIN["rozet"], 1000) / 1000)
+    rozet_boyut = (rozet_x1 - rozet_x0 - 150 - rozet_aralik * (len(METIN["rozet"]) - 1)) / (orta.genislik(METIN["rozet"], 1000) / 1000)
     g.append(orta.satir(METIN["rozet"], (rozet_x0 + rozet_x1) / 2, ry + rh / 2 + rozet_boyut * orta.kep / orta.em / 2,
                         rozet_boyut, aralik=rozet_aralik, hiza="orta", fill="#FFFFFF"))
-    # alt şerit (orijinaldeki gümüş + teal bant)
-    g.append(f'<rect y="{H - 58}" width="{W}" height="10" fill="url(#krom)"/>')
-    g.append(f'<rect y="{H - 44}" width="{W}" height="44" fill="{TEAL}"/>')
-    g.append(f'<path d="M 1060 {H - 44} L 1500 {H - 44} L 1500 {H} L 1030 {H} Z" fill="{TEAL_PARLAK}"/>')
-    g.append(f'<path d="M 1000 {H - 44} L 1040 {H - 44} L 1010 {H} L 970 {H} Z" fill="{TEAL_PARLAK}"/>')
-    g.append(orta.satir(METIN["sezon"], 1400, H - 10, 40, aralik=3, hiza="sag", fill=KOYU))
+    # alt: asfalt yol, şerit çizgisi ve üzerinde giden araba
+    yol_y = 680
+    g.append(
+        '<linearGradient id="asfalt" x1="0" y1="0" x2="0" y2="1">'
+        '<stop offset="0" stop-color="#1C2A2E"/><stop offset="1" stop-color="#070D0F"/></linearGradient>'
+    )
+    g.append(f'<rect y="{yol_y}" width="{W}" height="{H - yol_y}" fill="url(#asfalt)"/>')
+    g.append(f'<rect y="{yol_y}" width="{W}" height="7" fill="url(#krom)"/>')
+    g.append(f'<rect y="{yol_y + 7}" width="{W}" height="5" fill="{TEAL}"/>')
+    for x in range(420, W, 110):
+        g.append(f'<path d="M {x} 742 L {x + 62} 742 L {x + 56} 752 L {x - 6} 752 Z" fill="#E9EEF0" opacity="0.8"/>')
+    g.append(orta.satir(METIN["sezon"], 80, 765, 40, aralik=3, fill="#9FB3B9"))
+    araba_x, araba_w = 1015, 440
+    # arabanın arkasında hız çizgileri
+    for i, (y, uz, op) in enumerate(((628, 300, 0.9), (652, 220, 0.6), (604, 170, 0.45), (676, 130, 0.35))):
+        renk = TEAL_PARLAK if i % 2 == 0 else "#E9EEF0"
+        g.append(f'<rect x="{araba_x + 20 - uz}" y="{y}" width="{uz}" height="6" rx="3" fill="{renk}" opacity="{op}"/>')
+    g.append(araba(araba_x, 722, araba_w))
     g.append("</g>")
     # iç çerçeve
     g.append(f'<rect x="14" y="14" width="{W - 28}" height="{H - 28}" rx="{r - 12}" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="3"/>')
@@ -343,20 +442,22 @@ def yuvarlak():
     kalin, orta = Yazi("800-normal"), Yazi("700-normal")
     g = []
     g.append(f'<circle cx="{c}" cy="{c}" r="450" fill="#FFFFFF"/>')  # beyaz kesim payı
-    g.append(f'<circle r="335" fill="url(#gumusJant)" transform="translate({c} {c}) scale({426 / 335:.4f})"/>')
-    g.append(f'<circle cx="{c}" cy="{c}" r="412" fill="url(#karbon)"/>')
+    # dış halka lastik: dişler + gümüş jant kenarı
+    g.append(lastik_disi(c, c, 400, 432))
+    g.append(f'<circle r="335" fill="url(#gumusJant)" transform="translate({c} {c}) scale({400 / 335:.4f})"/>')
+    g.append(f'<circle cx="{c}" cy="{c}" r="390" fill="url(#karbon)"/>')
     g.append(
         '<radialGradient id="bant" cx="0.5" cy="0.5" r="0.5">'
         f'<stop offset="0.7" stop-color="{KOYU}" stop-opacity="0.6"/>'
         f'<stop offset="1" stop-color="{KOYU}" stop-opacity="0.95"/></radialGradient>'
     )
-    g.append(f'<circle cx="{c}" cy="{c}" r="412" fill="url(#bant)"/>')
+    g.append(f'<circle cx="{c}" cy="{c}" r="390" fill="url(#bant)"/>')
     # çevre yazıları
-    g.append(kalin.cember(METIN["cember_ust"], c, c, 345, 76, aralik=9, fill="url(#krom)"))
-    g.append(kalin.cember(METIN["cember_alt"], c, c, 397, 76, aralik=14, alt=True, fill="url(#tealYazi)"))
+    g.append(kalin.cember(METIN["cember_ust"], c, c, 323, 70, aralik=8, fill="url(#krom)"))
+    g.append(kalin.cember(METIN["cember_alt"], c, c, 371, 70, aralik=13, alt=True, fill="url(#tealYazi)"))
     # yanlarda yıldız
-    for x in (c - 362, c + 362):
-        g.append(yildiz(x, c + 2, 20, TEAL_PARLAK))
+    for x in (c - 345, c + 345):
+        g.append(yildiz(x, c + 2, 18, TEAL_PARLAK))
     # iç halka ve merkez
     g.append(f'<circle r="335" fill="url(#gumusJant)" transform="translate({c} {c}) scale({298 / 335:.4f})"/>')
     g.append(
@@ -372,7 +473,8 @@ def yuvarlak():
         '<mask id="damaMaske2"><rect width="900" height="900" fill="url(#damaSol2)"/></mask>'
     )
     g.append(f'<g clip-path="url(#merkezKirp)"><rect width="900" height="900" fill="url(#dama)" mask="url(#damaMaske2)"/></g>')
-    g.append(logo(c, c - 4, 248, hale=False))
+    g.append(logo(c, c, 212, hale=False))
+    g.append(devir_saati(c, c, 212, rakam=False))
     return svg(90, 90, S, S, "\n".join(g))
 
 
