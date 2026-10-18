@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="170mm" height="170mm" viewBox="0 0 672 672">
+<defs>
+  <clipPath id="yuzKirp"><circle r="300"/></clipPath>
+  <clipPath id="kalkanIc"><path d="M 0 -65 L 60 -49 L 60 8 C 60 45 33 68 0 84 C -33 68 -60 45 -60 8 L -60 -49 Z"/></clipPath>
+</defs>
+<g transform="translate(336 336) scale(1.00000)"><circle r="335" fill="#B3B3B3"/><circle r="296" fill="#00586A"/><g clip-path="url(#yuzKirp)" fill="#B3B3B3"><path d="M -330 -131 L 0 -3 L 0 76 L -330 -66 Z"/><path d="M 330 -131 L 0 -3 L 0 76 L 330 -66 Z"/><path d="M -119 0 L 119 0 L 0 300 Z"/><path d="M -58 60 L 58 60 L 0 240 Z" fill="#00586A"/></g><circle cy="-4" r="105" fill="#B3B3B3"/><g transform="translate(0 -4)"><path d="M 0 -78 L 72 -59 L 72 8 C 72 52 40 80 0 99 C -40 80 -72 52 -72 8 L -72 -59 Z" fill="#00586A"/><path d="M 0 -65 L 60 -49 L 60 8 C 60 45 33 68 0 84 C -33 68 -60 45 -60 8 L -60 -49 Z" fill="#B3B3B3"/><g clip-path="url(#kalkanIc)" fill="#00586A"><rect x="-3" y="-80" width="6" height="180"/><rect x="-40" y="-38" width="22" height="86" rx="11"/><path d="M 21 -80 L 45 -80 L 21 -14 Z"/><path d="M 72 -16 L 31 10 L 47 100 L 72 100 Z"/></g></g></g>
+</svg>

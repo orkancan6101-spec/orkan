@@ -7,6 +7,7 @@ Mevcut kulüp logosunun düz hâliyle üç sticker üretir. Yazılar eğriye
   ek-logo-b-muhur.svg    Ø 80 mm      yuvarlak mühür
   ek-logo-c-kalkan.svg   70 x 86 mm   logodaki kalkan biçiminde amblem
   onizleme.svg           üçü bir arada karşılaştırma sayfası
+  logo.svg               yalnızca direksiyon logosu, şeffaf zemin
 
 Metni değiştirmek için METIN sözlüğünü düzenle, sonra:
   pip install fonttools brotli
@@ -272,4 +273,6 @@ if __name__ == "__main__":
             f.write(svg(*t))
     with open(os.path.join(KLASOR, "onizleme.svg"), "w", encoding="utf-8") as f:
         f.write(onizleme(tasarimlar))
-    print("yazıldı:", ", ".join(adlar), "onizleme")
+    with open(os.path.join(KLASOR, "logo.svg"), "w", encoding="utf-8") as f:
+        f.write(svg(logo(336, 336, 335), 672, 672, 170, 170))
+    print("yazıldı:", ", ".join(adlar), "onizleme, logo")

@@ -23,6 +23,7 @@ const stickerlar = [
   { ad: 'ek-logo-b-muhur', mm: [80, 80] },
   { ad: 'ek-logo-c-kalkan', mm: [70, 86] },
   { ad: 'onizleme', mm: [180, 206] },
+  { ad: 'logo', mm: [170, 170] },
 ];
 
 const tarayici = await chromium.launch();
