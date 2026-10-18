@@ -1,22 +1,25 @@
-# Sponsorluk stickerı
+# Sponsorluk ek logosu
 
-ESOGÜ Otomotiv Kulübü sponsorlarına verilecek iki sticker tasarımı.
+ESOGÜ Otomotiv Kulübü sponsorları için sade, düz renkli ek logo. Mevcut
+kulüp logosunun düz hâlini ve yalnızca orijinal 4 rengi kullanır
+(koyu `#0E1B1F`, teal `#00586A`, gümüş `#B3B3B3`, açık `#EEF2F3`).
 
 | Dosya | Ölçü | Not |
 |---|---|---|
-| `sponsor-sticker-yatay.*` | 150 × 80 mm | Köşeler yuvarlatılmış (r = 6,4 mm), cam/vitrin için |
-| `sponsor-sticker-yuvarlak.*` | Ø 90 mm | 2,5 mm beyaz kesim payı dahil, laptop/kask/kasa için |
+| `ek-logo-a-yatay.*` | 140 × 80 mm | Orijinal düzen, altta teal bantta RESMİ SPONSOR |
+| `ek-logo-b-muhur.*` | Ø 80 mm | Yuvarlak mühür |
+| `ek-logo-c-kalkan.*` | 70 × 86 mm | Logodaki OK kalkanı biçiminde amblem |
+| `onizleme.png` | | Üçü bir arada karşılaştırma |
 
 - **Matbaaya** `.pdf` (vektörel, gerçek ölçü) ya da `.svg` ver. Yazılar
-  eğriye çevrilmiştir, yazı tipi gerekmez.
-- **Kesim çizgisi** tasarımın dış kenarıdır.
-- `.png` dosyaları 300 dpi ve şeffaf arka planlıdır. Önizleme ve sosyal medya için.
-- Renkler RGB. Baskıda CMYK'ya dönünce parlak teal biraz matlaşabilir.
-  Parlak (gloss) laminasyonlu vinil önerilir.
+  eğriye çevrilmiştir, yazı tipi gerekmez. Kesim çizgisi dış kenardır.
+- `.png` dosyaları 300 dpi ve şeffaf arka planlıdır.
+- Düz renk olduğu için CMYK'ya çevirmek sorunsuzdur. İstenirse matbaa
+  4 rengi Pantone'a da eşleyebilir.
 
 ## Metni değiştirmek
 
-`uret.py` içindeki `METIN` sözlüğünü düzenle (sezon, rozet yazısı vb.), sonra:
+`uret.py` içindeki `METIN` sözlüğünü düzenle, sonra:
 
 ```
 pip install fonttools brotli

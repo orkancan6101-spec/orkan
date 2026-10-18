@@ -19,8 +19,10 @@ const { chromium } = playwright;
 const klasor = dirname(fileURLToPath(import.meta.url));
 const DPI = 300;
 const stickerlar = [
-  { ad: 'sponsor-sticker-yatay', mm: [150, 80] },
-  { ad: 'sponsor-sticker-yuvarlak', mm: [90, 90] },
+  { ad: 'ek-logo-a-yatay', mm: [140, 80] },
+  { ad: 'ek-logo-b-muhur', mm: [80, 80] },
+  { ad: 'ek-logo-c-kalkan', mm: [70, 86] },
+  { ad: 'onizleme', mm: [180, 206] },
 ];
 
 const tarayici = await chromium.launch();
